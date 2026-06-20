@@ -82,7 +82,8 @@ resource "kubernetes_service" "redis" {
 
 resource "terraform_data" "gateway_api_crds" {
   provisioner "local-exec" {
-    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml"
+    command    = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml"
+    on_failure = continue
   }
 }
 
