@@ -93,7 +93,7 @@ resource "helm_release" "kgateway" {
   name       = "kgateway"
   repository = "oci://ghcr.io/kgateway-dev/charts"
   chart      = "kgateway"
-  version    = "2.0.1"
+  version    = "v2.3.4"
   namespace  = "kgateway-system"
 
   depends_on = [helm_release.kgateway_crds]
