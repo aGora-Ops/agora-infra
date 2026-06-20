@@ -86,18 +86,6 @@ module "eks" {
   cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
 
   enable_irsa = true
-
-  access_entries = {
-    admin = {
-      principal_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:user/clouduser-iam1"
-      policy_associations = {
-        admin = {
-          policy_arn   = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSClusterAdminPolicy"
-          access_scope = { type = "cluster" }
-        }
-      }
-    }
-  }
 }
 
 resource "aws_db_instance" "postgres" {
