@@ -1,11 +1,9 @@
 data "aws_caller_identity" "current" {}
 
 data "terraform_remote_state" "infra" {
-  backend = "s3"
+  backend = "local"
   config = {
-    bucket = "agora-terraform-state-353284253443"
-    key    = "prod/terraform.tfstate"
-    region = "us-east-1"
+    path = "${path.module}/../terraform.tfstate"
   }
 }
 

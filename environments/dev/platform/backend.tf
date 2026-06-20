@@ -16,12 +16,8 @@ terraform {
     }
   }
 
-  backend "s3" {
-    bucket         = "agora-terraform-state-353284253443"
-    key            = "dev/platform.tfstate"
-    region         = "us-east-1"
-    dynamodb_table = "agora-terraform-locks"
-    encrypt        = true
+  backend "local" {
+    path = "terraform.tfstate"
   }
 }
 
