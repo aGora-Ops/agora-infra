@@ -280,9 +280,9 @@ module "secrets" {
       SQS_QUEUE_URL = module.sqs.queue_url
       SECRET_KEY    = random_password.secret_key.result
       USE_MULTI_AGENT = "true"
-      # Cross-account Bedrock role (company account) — fill after creating the IAM role
-      BEDROCK_CROSS_ACCOUNT_ROLE_ARN = ""
-      # Agent IDs from company account Bedrock — fill manually after first deploy
+      # Fill these manually in AWS Secrets Manager after first apply.
+      # They are permanent (survive company account cleanup) so only need setting once.
+      BEDROCK_CROSS_ACCOUNT_ROLE_ARN     = ""
       BEDROCK_AGENT_ID_CLASSIFIER        = ""
       BEDROCK_AGENT_ID_ROOT_CAUSE        = ""
       BEDROCK_AGENT_ID_YAML_FIXER        = ""
