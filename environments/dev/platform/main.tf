@@ -84,7 +84,7 @@ resource "helm_release" "kgateway_crds" {
   name             = "kgateway-crds"
   repository       = "oci://ghcr.io/kgateway-dev/charts"
   chart            = "kgateway-crds"
-  version          = "2.0.1"
+  version          = "v2.3.4"
   namespace        = "kgateway-system"
   create_namespace = true
 }
