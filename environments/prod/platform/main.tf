@@ -37,21 +37,39 @@ resource "kubernetes_namespace" "agora" {
   }
 }
 
+resource "terraform_data" "gateway_api_crds" {
+  provisioner "local-exec" {
+    command = "kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.5.1/standard-install.yaml"
+  }
+}
+
 resource "helm_release" "kgateway_crds" {
   name             = "kgateway-crds"
-  repository       = "oci://ghcr.io/kgateway-dev/charts"
+  repository       = "oci://cr.kgateway.dev/kgateway-dev/charts"
   chart            = "kgateway-crds"
-  version          = "v2.3.4"
+  version          = "v2.3.1"
   namespace        = "kgateway-system"
   create_namespace = true
+
+  set {
+    name  = "controller.image.pullPolicy"
+    value = "Always"
+  }
+
+  depends_on = [terraform_data.gateway_api_crds]
 }
 
 resource "helm_release" "kgateway" {
   name       = "kgateway"
-  repository = "oci://ghcr.io/kgateway-dev/charts"
+  repository = "oci://cr.kgateway.dev/kgateway-dev/charts"
   chart      = "kgateway"
-  version    = "v2.3.4"
+  version    = "v2.3.1"
   namespace  = "kgateway-system"
+
+  set {
+    name  = "controller.image.pullPolicy"
+    value = "Always"
+  }
 
   depends_on = [helm_release.kgateway_crds]
 }
