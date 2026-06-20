@@ -131,6 +131,7 @@ resource "kubernetes_manifest" "gateway" {
           name     = "http"
           protocol = "HTTP"
           port     = 80
+          allowedRoutes = { namespaces = { from = "All" } }
         },
         {
           name     = "https"
