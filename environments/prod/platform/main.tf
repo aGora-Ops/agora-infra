@@ -227,7 +227,7 @@ resource "kubernetes_manifest" "argocd_app" {
         namespace = "agora"
       }
       syncPolicy = {
-        automated = { prune = true, selfHeal = true }
+        automated   = { prune = true, selfHeal = true }
         syncOptions = ["CreateNamespace=true"]
       }
     }

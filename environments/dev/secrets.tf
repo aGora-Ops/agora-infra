@@ -41,12 +41,12 @@ module "secrets" {
       USE_MULTI_AGENT = "true"
       # Fill these manually in AWS Secrets Manager after first apply.
       # They are permanent (survive company account cleanup) so only need setting once.
-      BEDROCK_CROSS_ACCOUNT_ROLE_ARN     = ""
-      BEDROCK_AGENT_ID_CLASSIFIER        = ""
-      BEDROCK_AGENT_ID_ROOT_CAUSE        = ""
-      BEDROCK_AGENT_ID_YAML_FIXER        = ""
-      BEDROCK_AGENT_ID_SECURITY_REVIEWER = ""
-      BEDROCK_AGENT_ID_PR_WRITER         = ""
+      BEDROCK_CROSS_ACCOUNT_ROLE_ARN           = ""
+      BEDROCK_AGENT_ID_CLASSIFIER              = ""
+      BEDROCK_AGENT_ID_ROOT_CAUSE              = ""
+      BEDROCK_AGENT_ID_YAML_FIXER              = ""
+      BEDROCK_AGENT_ID_SECURITY_REVIEWER       = ""
+      BEDROCK_AGENT_ID_PR_WRITER               = ""
       BEDROCK_AGENT_ALIAS_ID_CLASSIFIER        = ""
       BEDROCK_AGENT_ALIAS_ID_ROOT_CAUSE        = ""
       BEDROCK_AGENT_ALIAS_ID_YAML_FIXER        = ""

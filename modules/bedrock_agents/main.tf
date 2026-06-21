@@ -1,6 +1,6 @@
 resource "aws_iam_role" "agent" {
   for_each = var.agents
-  name = "${var.cluster_name}-bedrock-agent-${each.key}"
+  name     = "${var.cluster_name}-bedrock-agent-${each.key}"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -10,7 +10,7 @@ resource "aws_iam_role" "agent" {
       Action    = "sts:AssumeRole"
       Condition = {
         StringEquals = { "aws:SourceAccount" = var.account_id }
-        ArnLike       = { "aws:SourceArn" = "arn:aws:bedrock:${var.aws_region}:${var.account_id}:agent/*" }
+        ArnLike      = { "aws:SourceArn" = "arn:aws:bedrock:${var.aws_region}:${var.account_id}:agent/*" }
       }
     }]
   })
@@ -34,10 +34,10 @@ resource "aws_iam_role_policy" "agent_model" {
 resource "aws_bedrockagent_agent" "this" {
   for_each = var.agents
 
-  agent_name              = "${var.cluster_name}-${each.key}"
-  agent_resource_role_arn = aws_iam_role.agent[each.key].arn
-  foundation_model        = each.value.foundation_model
-  instruction             = each.value.instruction
+  agent_name                  = "${var.cluster_name}-${each.key}"
+  agent_resource_role_arn     = aws_iam_role.agent[each.key].arn
+  foundation_model            = each.value.foundation_model
+  instruction                 = each.value.instruction
   idle_session_ttl_in_seconds = 300
 
   tags = {

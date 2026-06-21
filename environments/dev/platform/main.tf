@@ -130,9 +130,9 @@ resource "kubernetes_manifest" "gateway" {
       gatewayClassName = "kgateway"
       listeners = [
         {
-          name     = "http"
-          protocol = "HTTP"
-          port     = 80
+          name          = "http"
+          protocol      = "HTTP"
+          port          = 80
           allowedRoutes = { namespaces = { from = "All" } }
         },
         {
@@ -272,7 +272,7 @@ resource "kubernetes_manifest" "argocd_app" {
         namespace = "agora"
       }
       syncPolicy = {
-        automated = { prune = true, selfHeal = true }
+        automated   = { prune = true, selfHeal = true }
         syncOptions = ["CreateNamespace=true"]
       }
     }

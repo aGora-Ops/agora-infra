@@ -42,6 +42,7 @@ jobs:
     with:
       environment: dev
       working_directory: environments/dev
+      alert_email: ${{ vars.ALERT_EMAIL }}
     secrets:
       AWS_PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
 
@@ -55,14 +56,15 @@ jobs:
     with:
       environment: prod
       working_directory: environments/prod
+      alert_email: ${{ vars.ALERT_EMAIL }}
     secrets:
       AWS_PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
 
   apply-dev:
-    name: Apply Dev
-    if: |
-      github.event_name == 'push' ||
-      (github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && inputs.environment == 'dev')
+    name: Apply Dev (manual)
+    # Gated: push to main runs plan only. Apply runs only when explicitly
+    # dispatched, so live dev infra is never changed without review.
+    if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && inputs.environment == 'dev'
     needs: plan-dev
     uses: aGora-Ops/agora-workflows/.github/workflows/terraform-apply.yml@main
     with:

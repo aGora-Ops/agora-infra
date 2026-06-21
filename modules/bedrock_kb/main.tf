@@ -24,21 +24,21 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "kb" {
 }
 
 resource "aws_opensearchserverless_security_policy" "encryption" {
-  name   = "agora-${var.environment}-enc"
-  type   = "encryption"
+  name = "agora-${var.environment}-enc"
+  type = "encryption"
   policy = jsonencode({
-    Rules    = [{ ResourceType = "collection", Resource = ["collection/agora-${var.environment}"] }]
+    Rules       = [{ ResourceType = "collection", Resource = ["collection/agora-${var.environment}"] }]
     AWSOwnedKey = true
   })
 }
 
 resource "aws_opensearchserverless_security_policy" "network" {
-  name   = "agora-${var.environment}-net"
-  type   = "network"
+  name = "agora-${var.environment}-net"
+  type = "network"
   policy = jsonencode([{
     Rules = [
       { ResourceType = "collection", Resource = ["collection/agora-${var.environment}"] },
-      { ResourceType = "dashboard",  Resource = ["collection/agora-${var.environment}"] },
+      { ResourceType = "dashboard", Resource = ["collection/agora-${var.environment}"] },
     ]
     AllowFromPublic = false
     SourceVPCEs     = [var.opensearch_vpc_endpoint_id]
