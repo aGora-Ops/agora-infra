@@ -4,7 +4,10 @@
     {
       "Effect": "Allow",
       "Principal": {
-        "AWS": "arn:aws:iam::591316257673:role/agora-dev-agora-worker"
+        "AWS": [
+          "arn:aws:iam::591316257673:role/agora-dev-agora-worker",
+          "arn:aws:iam::591316257673:role/agora-dev-agora-api"
+        ]
       },
       "Action": "sts:AssumeRole"
     }
