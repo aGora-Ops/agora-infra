@@ -2,7 +2,7 @@
 # Shared locals + data sources for the prod environment. Each concern lives
 # in its own file in this directory (Terraform reads all *.tf as one module):
 #
-#   network.tf     VPC, subnets, per-AZ NAT, Bedrock VPC endpoints
+#   network.tf     VPC, subnets, per-AZ NAT
 #   compute.tf     EKS cluster (private), node groups, add-ons, EBS CSI IRSA
 #   database.tf    RDS PostgreSQL + generated password
 #   registry.tf    ECR repos

@@ -29,34 +29,6 @@ module "vpc" {
   }
 }
 
-# NOTE: These Bedrock VPC endpoints assume same-account Bedrock. The dev
-# environment moved to cross-account Bedrock (sts:AssumeRole into the company
-# account) and removed these. If prod also uses cross-account Bedrock, delete
-# this block — cross-account traffic goes over the public Bedrock endpoint.
-resource "aws_security_group" "bedrock_vpce" {
-  name        = "${local.name}-bedrock-vpce"
-  description = "Allow HTTPS from within the VPC to Bedrock interface endpoints"
-  vpc_id      = module.vpc.vpc_id
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = [var.vpc_cidr]
-  }
-}
-
-resource "aws_vpc_endpoint" "bedrock" {
-  for_each = toset(["bedrock", "bedrock-runtime", "bedrock-agent-runtime"])
-
-  vpc_id              = module.vpc.vpc_id
-  service_name        = "com.amazonaws.${var.aws_region}.${each.key}"
-  vpc_endpoint_type   = "Interface"
-  subnet_ids          = module.vpc.private_subnets
-  security_group_ids  = [aws_security_group.bedrock_vpce.id]
-  private_dns_enabled = true
-
-  tags = {
-    Name = "${local.name}-${each.key}-vpce"
-  }
-}
+# Bedrock VPC endpoints removed — worker calls Bedrock cross-account via
+# sts:AssumeRole into the company account, so same-account VPC endpoints
+# don't apply. Cross-account traffic routes over the public Bedrock endpoint.
