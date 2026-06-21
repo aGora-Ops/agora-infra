@@ -3,7 +3,7 @@ name: Terraform
 on:
   pull_request:
     branches: [main]
-    paths:
+    pat:
       - "environments/**"
       - "modules/**"
   push:
