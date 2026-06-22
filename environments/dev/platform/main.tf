@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 data "terraform_remote_state" "infra" {
   backend = "s3"
   config = {
-    bucket = "agora-tfstate-personal-591316257673"
+    bucket = var.tfstate_bucket
     key    = "dev/terraform.tfstate"
     region = "us-east-1"
   }
@@ -294,6 +294,18 @@ resource "kubernetes_manifest" "argocd_app" {
         path           = "charts/${each.key}"
         helm = {
           valueFiles = ["values.yaml", "values.dev.yaml"]
+          # Overrides the committed values.dev.yaml's aws.mainAccountId/
+          # clusterName with whatever account this Terraform run is actually
+          # targeting. Makes a fresh deploy to a brand-new AWS account work
+          # correctly on the FIRST sync, before any CI run has ever rewritten
+          # the committed chart values (helm-update.yml only fixes this field
+          # on each subsequent image push, not on day one). agora-frontend and
+          # agora-mcp-github don't define aws.* in their values — Helm just
+          # ignores the unused parameter for those two.
+          parameters = [
+            { name = "aws.mainAccountId", value = data.aws_caller_identity.current.account_id },
+            { name = "aws.clusterName", value = data.terraform_remote_state.infra.outputs.cluster_name },
+          ]
         }
       }
       destination = {

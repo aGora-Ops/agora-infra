@@ -3,7 +3,7 @@ data "aws_caller_identity" "current" {}
 data "terraform_remote_state" "infra" {
   backend = "s3"
   config = {
-    bucket = "agora-tfstate-personal-591316257673"
+    bucket = var.tfstate_bucket
     key    = "prod/terraform.tfstate"
     region = "us-east-1"
   }
@@ -220,6 +220,14 @@ resource "kubernetes_manifest" "argocd_app" {
         path           = "charts/${each.key}"
         helm = {
           valueFiles = ["values.yaml", "values.prod.yaml"]
+          # Overrides the committed values.prod.yaml's aws.mainAccountId/
+          # clusterName with whatever account this Terraform run is actually
+          # targeting — see the matching comment in environments/dev/platform
+          # for why this fixes a real account-portability bug.
+          parameters = [
+            { name = "aws.mainAccountId", value = data.aws_caller_identity.current.account_id },
+            { name = "aws.clusterName", value = data.terraform_remote_state.infra.outputs.cluster_name },
+          ]
         }
       }
       destination = {
