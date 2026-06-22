@@ -352,8 +352,12 @@ resource "kubernetes_manifest" "karpenter_node_class" {
     kind       = "EC2NodeClass"
     metadata   = { name = "default" }
     spec = {
-      amiFamily = "AL2023"
-      role      = data.terraform_remote_state.infra.outputs.karpenter_node_role_name
+      role = data.terraform_remote_state.infra.outputs.karpenter_node_role_name
+      # Karpenter v1's "alias" form always resolves to the latest AL2023 AMI
+      # for the cluster's Kubernetes version — no amiFamily needed alongside it.
+      amiSelectorTerms = [
+        { alias = "al2023@latest" }
+      ]
       subnetSelectorTerms = [
         { tags = { "kubernetes.io/role/internal-elb" = "1" } }
       ]
@@ -422,6 +426,13 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
         chart          = "kube-prometheus-stack"
         targetRevision = "65.5.1"
         helm = {
+          # The chart's CRDs (Prometheus, Alertmanager, etc.) embed OpenAPI
+          # schemas large enough to exceed the 262144-byte last-applied-
+          # config annotation limit — ServerSideApply alone doesn't avoid
+          # this for CRDs specifically. Applied once, manually, via
+          # `kubectl apply --server-side` against the chart's crds/
+          # directory; ArgoCD only manages the workload resources here.
+          skipCrds = true
           values = yamlencode({
             grafana = {
               service = { type = "ClusterIP" }
@@ -450,8 +461,12 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
         namespace = "monitoring"
       }
       syncPolicy = {
-        automated   = { prune = true, selfHeal = true }
-        syncOptions = ["CreateNamespace=true"]
+        automated = { prune = true, selfHeal = true }
+        # kube-prometheus-stack's CRDs (Prometheus, Alertmanager, etc.) embed
+        # large OpenAPI schemas that exceed the 262144-byte annotation limit
+        # under client-side apply — a known issue with this chart. Server-side
+        # apply doesn't hit that limit.
+        syncOptions = ["CreateNamespace=true", "ServerSideApply=true"]
       }
     }
   }
