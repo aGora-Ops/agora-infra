@@ -29,6 +29,7 @@ provider "aws" {
       Project     = "agora"
       Environment = "dev"
       ManagedBy   = "terraform"
+      Owner       = "chriss"
     }
   }
 }

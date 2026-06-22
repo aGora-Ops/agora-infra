@@ -45,6 +45,7 @@ jobs:
       alert_email: ${{ vars.ALERT_EMAIL }}
     secrets:
       AWS_PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
   plan-prod:
     name: Plan Prod
@@ -59,6 +60,7 @@ jobs:
       alert_email: ${{ vars.ALERT_EMAIL }}
     secrets:
       AWS_PLAN_ROLE_ARN: ${{ secrets.AWS_PLAN_ROLE_ARN }}
+      INFRACOST_API_KEY: ${{ secrets.INFRACOST_API_KEY }}
 
   apply-dev:
     name: Apply Dev (manual)

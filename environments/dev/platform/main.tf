@@ -247,9 +247,13 @@ resource "helm_release" "argocd" {
     value = "instance"
   }
 
+  # Cluster (not Local): with a single argocd-server replica, Local only
+  # answers the NLB health check on the one node running that pod, and the
+  # NLB doesn't cross-zone load balance by default — requests landing on the
+  # other AZs/nodes time out. Cluster lets every node forward to the pod.
   set {
     name  = "server.service.externalTrafficPolicy"
-    value = "Local"
+    value = "Cluster"
   }
 }
 
@@ -304,4 +308,153 @@ resource "kubernetes_manifest" "argocd_app" {
   }
 
   depends_on = [helm_release.argocd, kubernetes_secret.argocd_repo_helm]
+}
+
+# ── Karpenter (controller + NodePool/EC2NodeClass) ──────────────────────
+# Supplements the existing eks_managed_node_groups (compute.tf in the main
+# infra layer) — those keep running every current pod unchanged. Nothing
+# schedules onto a Karpenter-specific nodeSelector today, so the NodePool
+# stays dormant: Karpenter only launches a node when a pod is unschedulable
+# against existing capacity, which doesn't happen in this demo's normal
+# traffic. Gated behind enable_karpenter; requires the main infra layer's
+# own enable_karpenter = true (its IAM/queue outputs are null otherwise).
+resource "helm_release" "karpenter" {
+  count = var.enable_karpenter ? 1 : 0
+
+  name             = "karpenter"
+  repository       = "oci://public.ecr.aws/karpenter"
+  chart            = "karpenter"
+  version          = "1.0.6"
+  namespace        = "karpenter"
+  create_namespace = true
+
+  set {
+    name  = "settings.clusterName"
+    value = data.terraform_remote_state.infra.outputs.cluster_name
+  }
+
+  set {
+    name  = "settings.interruptionQueue"
+    value = data.terraform_remote_state.infra.outputs.karpenter_interruption_queue_name
+  }
+
+  set {
+    name  = "serviceAccount.annotations.eks\\.amazonaws\\.com/role-arn"
+    value = data.terraform_remote_state.infra.outputs.karpenter_controller_role_arn
+  }
+}
+
+resource "kubernetes_manifest" "karpenter_node_class" {
+  count = var.enable_karpenter ? 1 : 0
+
+  manifest = {
+    apiVersion = "karpenter.k8s.aws/v1"
+    kind       = "EC2NodeClass"
+    metadata   = { name = "default" }
+    spec = {
+      amiFamily = "AL2023"
+      role      = data.terraform_remote_state.infra.outputs.karpenter_node_role_name
+      subnetSelectorTerms = [
+        { tags = { "kubernetes.io/role/internal-elb" = "1" } }
+      ]
+      securityGroupSelectorTerms = [
+        { id = data.terraform_remote_state.infra.outputs.node_security_group_id }
+      ]
+    }
+  }
+
+  depends_on = [helm_release.karpenter]
+}
+
+resource "kubernetes_manifest" "karpenter_node_pool" {
+  count = var.enable_karpenter ? 1 : 0
+
+  manifest = {
+    apiVersion = "karpenter.sh/v1"
+    kind       = "NodePool"
+    metadata   = { name = "default" }
+    spec = {
+      template = {
+        spec = {
+          nodeClassRef = {
+            group = "karpenter.k8s.aws"
+            kind  = "EC2NodeClass"
+            name  = "default"
+          }
+          requirements = [
+            { key = "kubernetes.io/arch", operator = "In", values = ["amd64"] },
+            { key = "karpenter.sh/capacity-type", operator = "In", values = ["on-demand"] },
+            { key = "node.kubernetes.io/instance-type", operator = "In", values = ["t3.medium", "t3.large"] },
+          ]
+        }
+      }
+      # Conservative cap for a demo cluster — Karpenter will never launch
+      # more capacity than this even if something does request scheduling.
+      limits = { cpu = "8" }
+      disruption = {
+        consolidationPolicy = "WhenEmptyOrUnderutilized"
+        consolidateAfter    = "5m"
+      }
+    }
+  }
+
+  depends_on = [kubernetes_manifest.karpenter_node_class]
+}
+
+# ── Monitoring (kube-prometheus-stack via ArgoCD) ───────────────────────
+# Same GitOps pattern as the per-service Applications above, but pointed at
+# the upstream prometheus-community chart instead of agora-helm. Grafana's
+# Service is intentionally left ClusterIP (no LoadBalancer, no public NLB) —
+# access it via `kubectl port-forward svc/monitoring-grafana -n monitoring
+# 3000:80`. No extra cost, no new public attack surface.
+resource "kubernetes_manifest" "argocd_app_monitoring" {
+  manifest = {
+    apiVersion = "argoproj.io/v1alpha1"
+    kind       = "Application"
+    metadata = {
+      name      = "monitoring"
+      namespace = "argocd"
+    }
+    spec = {
+      project = "default"
+      source = {
+        repoURL        = "https://prometheus-community.github.io/helm-charts"
+        chart          = "kube-prometheus-stack"
+        targetRevision = "65.5.1"
+        helm = {
+          values = yamlencode({
+            grafana = {
+              service = { type = "ClusterIP" }
+              # Demo cluster — single replica is enough; lower default
+              # resource asks than the chart's production defaults.
+              resources = {
+                requests = { cpu = "50m", memory = "128Mi" }
+                limits   = { cpu = "200m", memory = "256Mi" }
+              }
+            }
+            prometheus = {
+              prometheusSpec = {
+                resources = {
+                  requests = { cpu = "100m", memory = "256Mi" }
+                  limits   = { cpu = "500m", memory = "512Mi" }
+                }
+                retention = "7d"
+              }
+            }
+            alertmanager = { enabled = false }
+          })
+        }
+      }
+      destination = {
+        server    = "https://kubernetes.default.svc"
+        namespace = "monitoring"
+      }
+      syncPolicy = {
+        automated   = { prune = true, selfHeal = true }
+        syncOptions = ["CreateNamespace=true"]
+      }
+    }
+  }
+
+  depends_on = [helm_release.argocd]
 }

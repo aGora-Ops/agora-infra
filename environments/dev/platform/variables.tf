@@ -3,3 +3,9 @@ variable "argocd_repo_pat" {
   type        = string
   sensitive   = true
 }
+
+variable "enable_karpenter" {
+  description = "Install the Karpenter Helm release + NodePool/EC2NodeClass. Requires enable_karpenter = true in the main infra layer (its IAM outputs would otherwise be null)."
+  type        = bool
+  default     = false
+}

@@ -30,5 +30,5 @@ module "vpc" {
 }
 
 # Bedrock VPC endpoints removed — worker calls Bedrock cross-account via
-# sts:AssumeRole into the company account, so same-account VPC endpoints
+# sts:AssumeRole into the Bedrock account, so same-account VPC endpoints
 # don't apply. Cross-account traffic routes over the public Bedrock endpoint.

@@ -5,6 +5,8 @@
 crash.log
 crash.*.log
 *.tfvars.json
+*.binary
+plan.txt
 
 # Never commit real secret values. Supply github_client_secret, alert_email,
 # argocd_repo_pat, etc. via TF_VAR_* environment variables or an untracked

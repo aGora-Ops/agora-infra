@@ -110,7 +110,7 @@ resource "aws_iam_policy" "bedrock" {
         Resource = var.bedrock_model_arn
       },
       {
-        # Allows assuming the cross-account Bedrock role in the company account.
+        # Allows assuming the cross-account Bedrock role in the Bedrock account.
         # The role ARN is supplied at runtime via BEDROCK_CROSS_ACCOUNT_ROLE_ARN.
         Effect   = "Allow"
         Action   = ["sts:AssumeRole"]

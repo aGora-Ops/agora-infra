@@ -5,12 +5,12 @@ variable "aws_region" {
 }
 
 variable "account_id" {
-  description = "Company AWS account ID that owns the Bedrock agents — pass via -var, never commit"
+  description = "Bedrock AWS account ID that owns the Bedrock agents — pass via -var, never commit"
   type        = string
 }
 
 variable "assume_role_arn" {
-  description = "Optional role to assume in the company account before creating resources — leave empty to use the ambient credentials directly"
+  description = "Optional role to assume in the Bedrock account before creating resources — leave empty to use the ambient credentials directly"
   type        = string
   default     = ""
 }

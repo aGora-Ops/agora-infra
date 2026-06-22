@@ -30,8 +30,9 @@ provider "aws" {
   default_tags {
     tags = {
       Project     = "agora"
-      Environment = "company"
+      Environment = "bedrock"
       ManagedBy   = "terraform"
+      Owner       = "chriss"
     }
   }
 }

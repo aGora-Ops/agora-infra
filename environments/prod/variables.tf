@@ -60,3 +60,9 @@ variable "alert_email" {
   type        = string
 }
 
+variable "log_retention_days" {
+  description = "Retention period (days) for CloudWatch log groups (EKS control plane, Container Insights)"
+  type        = number
+  default     = 30
+}
+

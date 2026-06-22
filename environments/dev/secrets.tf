@@ -40,7 +40,7 @@ module "secrets" {
       SECRET_KEY      = random_password.secret_key.result
       USE_MULTI_AGENT = "true"
       # Fill these manually in AWS Secrets Manager after first apply.
-      # They are permanent (survive company account cleanup) so only need setting once.
+      # They are permanent (survive Bedrock account cleanup) so only need setting once.
       BEDROCK_CROSS_ACCOUNT_ROLE_ARN           = ""
       BEDROCK_AGENT_ID_CLASSIFIER              = ""
       BEDROCK_AGENT_ID_ROOT_CAUSE              = ""

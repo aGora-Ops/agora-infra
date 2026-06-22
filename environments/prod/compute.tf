@@ -38,7 +38,8 @@ module "eks" {
     vpc-cni    = { most_recent = true }
   }
 
-  cluster_enabled_log_types = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  cluster_enabled_log_types              = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
+  cloudwatch_log_group_retention_in_days = var.log_retention_days
 
   enable_irsa = true
 }
@@ -72,4 +73,14 @@ resource "aws_eks_addon" "cloudwatch_observability" {
   service_account_role_arn = module.iam.cloudwatch_observability_role_arn
 
   depends_on = [module.eks, module.iam]
+}
+
+# Container Insights (the addon above) writes to these fixed-name log groups.
+# Pre-creating them gives us retention + tags instead of the addon's
+# auto-created default (never expire, no Owner/Environment tags).
+resource "aws_cloudwatch_log_group" "container_insights" {
+  for_each = toset(["application", "dataplane", "host", "performance"])
+
+  name              = "/aws/containerinsights/${local.name}/${each.key}"
+  retention_in_days = var.log_retention_days
 }
