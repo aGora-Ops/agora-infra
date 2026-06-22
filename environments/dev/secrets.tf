@@ -25,7 +25,7 @@ module "secrets" {
       FRONTEND_URL          = var.frontend_url
       SQS_QUEUE_URL         = module.sqs.queue_url
       SECRET_KEY            = random_password.secret_key.result
-      # Pipeline Chat (Feature 3) — assume company-account Bedrock role.
+      # Pipeline Chat (Feature 3) — assume Bedrock-account Bedrock role.
       # Fill manually in AWS Secrets Manager after first apply.
       BEDROCK_CROSS_ACCOUNT_ROLE_ARN = ""
     }

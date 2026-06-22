@@ -24,5 +24,5 @@ variable "cluster_name" {
 variable "environment" {
   description = "Environment tag for the agents"
   type        = string
-  default     = "company"
+  default     = "bedrock"
 }
