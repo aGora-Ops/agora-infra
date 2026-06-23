@@ -10,9 +10,10 @@
 #   messaging.tf   SNS alerts + SQS queue/DLQ + queue IAM policies
 #   secrets.tf     Secrets Manager entries (custom modules/secrets)
 #   dns.tf         Route53 zone data source (optional, when hosted_zone_id set)
-#   security.tf    WAFv2 Web ACL (REGIONAL)
+#   security.tf    WAFv2 Web ACL (REGIONAL), GuardDuty, GuardDuty->SNS
 #   cdn.tf         CloudFront + WAFv2 Web ACL (CLOUDFRONT scope), optional
 #   monitoring.tf  CloudWatch alarms + dashboard
+#   cloudtrail.tf  Multi-region CloudTrail + S3 bucket + CloudWatch Logs
 #
 # Bedrock agents are NOT created here — they live in the Bedrock AWS account.
 # The worker assumes BEDROCK_CROSS_ACCOUNT_ROLE_ARN to call them cross-account;

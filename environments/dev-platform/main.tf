@@ -128,6 +128,17 @@ resource "kubernetes_manifest" "gateway" {
     }
     spec = {
       gatewayClassName = "kgateway"
+      # HTTP only — TLS terminates at CloudFront (the edge), not here.
+      # Origin traffic (CloudFront -> NLB -> kGateway) never leaves AWS's
+      # internal network, so this hop being plaintext doesn't create a
+      # public exposure; it's the same "edge TLS, private-network internal
+      # hop" pattern AWS documents for CloudFront-fronted ALB/NLB origins.
+      # An "https" listener used to exist here referencing a
+      # kgateway-system/agora-tls Secret that was never actually created —
+      # dead config, removed rather than wired up, since adding a second
+      # real TLS termination point here would just be cost/complexity
+      # (cert-manager + ACME renewal) for a security property CloudFront
+      # already provides.
       listeners = [
         {
           name          = "http"
@@ -135,18 +146,6 @@ resource "kubernetes_manifest" "gateway" {
           port          = 80
           allowedRoutes = { namespaces = { from = "All" } }
         },
-        {
-          name     = "https"
-          protocol = "HTTPS"
-          port     = 443
-          tls = {
-            mode = "Terminate"
-            certificateRefs = [{
-              name      = "agora-tls"
-              namespace = "kgateway-system"
-            }]
-          }
-        }
       ]
     }
   }
@@ -154,7 +153,11 @@ resource "kubernetes_manifest" "gateway" {
   depends_on = [helm_release.kgateway]
 }
 
-# Allows HTTPRoutes in the agora namespace to reference the Gateway in kgateway-system
+# Allows HTTPRoutes in agora/argocd/monitoring to reference the Gateway in
+# kgateway-system. argocd/monitoring were added alongside their respective
+# HTTPRoutes below (argocd-server, grafana) — without an entry here for a
+# namespace, kGateway rejects that namespace's HTTPRoute with a
+# RefNotPermitted condition even though the route object itself applies fine.
 resource "kubernetes_manifest" "reference_grant" {
   manifest = {
     apiVersion = "gateway.networking.k8s.io/v1beta1"
@@ -164,11 +167,23 @@ resource "kubernetes_manifest" "reference_grant" {
       namespace = "kgateway-system"
     }
     spec = {
-      from = [{
-        group     = "gateway.networking.k8s.io"
-        kind      = "HTTPRoute"
-        namespace = "agora"
-      }]
+      from = [
+        {
+          group     = "gateway.networking.k8s.io"
+          kind      = "HTTPRoute"
+          namespace = "agora"
+        },
+        {
+          group     = "gateway.networking.k8s.io"
+          kind      = "HTTPRoute"
+          namespace = "argocd"
+        },
+        {
+          group     = "gateway.networking.k8s.io"
+          kind      = "HTTPRoute"
+          namespace = "monitoring"
+        },
+      ]
       to = [{
         group = "gateway.networking.k8s.io"
         kind  = "Gateway"
@@ -227,34 +242,62 @@ resource "helm_release" "argocd" {
   create_namespace = true
   version          = "7.6.12"
 
+  # ClusterIP, not its own public LoadBalancer/NLB — reachable only via the
+  # argocd-server HTTPRoute below, through the same CloudFront+WAF-fronted
+  # NLB every other service in this project already uses. Previously had
+  # its own internet-facing NLB with no WAF and no CloudFront in front of
+  # it at all — the weakest public exposure in this project before this
+  # change.
   set {
     name  = "server.service.type"
-    value = "LoadBalancer"
+    value = "ClusterIP"
   }
 
+  # argocd-server forces an HTTP->HTTPS redirect by default. TLS already
+  # terminates at CloudFront (see the Gateway resource's comment above) —
+  # origin traffic here is plain HTTP, so without --insecure this would
+  # redirect-loop.
   set {
-    name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-type"
-    value = "nlb"
+    name  = "configs.params.server\\.insecure"
+    value = "true"
+  }
+}
+
+# Routes argocd.<domain> -> argocd-server, through the same Gateway/NLB/
+# CloudFront/WAF every app service already uses. Hostname-matched (not
+# path-prefix, like the app routes) so there's no risk of colliding with
+# agora-frontend's catch-all "/" route.
+resource "kubernetes_manifest" "argocd_httproute" {
+  count = var.domain_name != "" ? 1 : 0
+
+  manifest = {
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "argocd-server"
+      namespace = "argocd"
+    }
+    spec = {
+      parentRefs = [{
+        group     = "gateway.networking.k8s.io"
+        kind      = "Gateway"
+        name      = "agora-gateway"
+        namespace = "kgateway-system"
+      }]
+      hostnames = ["argocd.${var.domain_name}"]
+      rules = [{
+        matches = [{ path = { type = "PathPrefix", value = "/" } }]
+        backendRefs = [{
+          group = ""
+          kind  = "Service"
+          name  = "argocd-server"
+          port  = 80
+        }]
+      }]
+    }
   }
 
-  set {
-    name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-scheme"
-    value = "internet-facing"
-  }
-
-  set {
-    name  = "server.service.annotations.service\\.beta\\.kubernetes\\.io/aws-load-balancer-nlb-target-type"
-    value = "instance"
-  }
-
-  # Cluster (not Local): with a single argocd-server replica, Local only
-  # answers the NLB health check on the one node running that pod, and the
-  # NLB doesn't cross-zone load balance by default — requests landing on the
-  # other AZs/nodes time out. Cluster lets every node forward to the pod.
-  set {
-    name  = "server.service.externalTrafficPolicy"
-    value = "Cluster"
-  }
+  depends_on = [helm_release.argocd, kubernetes_manifest.reference_grant]
 }
 
 resource "kubernetes_secret" "argocd_repo_helm" {
@@ -484,4 +527,41 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
   }
 
   depends_on = [helm_release.argocd]
+}
+
+# Routes grafana.<domain> -> the chart's Grafana Service, same pattern as
+# argocd-server above. Grafana's Service stays ClusterIP (no change there) —
+# this just gives it a real, WAF-protected path in instead of the previous
+# only-reachable-via-kubectl-port-forward state.
+resource "kubernetes_manifest" "grafana_httproute" {
+  count = var.domain_name != "" ? 1 : 0
+
+  manifest = {
+    apiVersion = "gateway.networking.k8s.io/v1"
+    kind       = "HTTPRoute"
+    metadata = {
+      name      = "grafana"
+      namespace = "monitoring"
+    }
+    spec = {
+      parentRefs = [{
+        group     = "gateway.networking.k8s.io"
+        kind      = "Gateway"
+        name      = "agora-gateway"
+        namespace = "kgateway-system"
+      }]
+      hostnames = ["grafana.${var.domain_name}"]
+      rules = [{
+        matches = [{ path = { type = "PathPrefix", value = "/" } }]
+        backendRefs = [{
+          group = ""
+          kind  = "Service"
+          name  = "monitoring-grafana"
+          port  = 80
+        }]
+      }]
+    }
+  }
+
+  depends_on = [kubernetes_manifest.argocd_app_monitoring]
 }

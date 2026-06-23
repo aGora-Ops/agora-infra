@@ -55,7 +55,15 @@ resource "aws_cloudfront_distribution" "main" {
   comment         = "${local.name} — CloudFront in front of the kGateway NLB"
   web_acl_id      = aws_wafv2_web_acl.cloudfront[0].arn
 
-  aliases = var.domain_name != "" ? [var.domain_name] : []
+  # argocd./grafana. share this one distribution — kGateway routes by Host
+  # header downstream (HTTPRoute hostnames in dev-platform), so one
+  # CloudFront distribution in front of one NLB serves all three, instead of
+  # ArgoCD needing its own separate NLB+distribution.
+  aliases = var.domain_name != "" ? [
+    var.domain_name,
+    "argocd.${var.domain_name}",
+    "grafana.${var.domain_name}",
+  ] : []
 
   origin {
     domain_name = var.nlb_hostname
@@ -109,6 +117,39 @@ resource "aws_route53_record" "cdn_alias" {
 
   zone_id = data.aws_route53_zone.main[0].zone_id
   name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.main[0].domain_name
+    zone_id                = aws_cloudfront_distribution.main[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+# argocd./grafana. point at the SAME CloudFront distribution as the apex —
+# CloudFront only cares that the hostname is in its aliases list (set
+# above); routing to the right backend Service happens downstream, via
+# kGateway's HTTPRoute hostname match on whatever Host header the request
+# actually carries.
+resource "aws_route53_record" "argocd_alias" {
+  count = var.nlb_hostname != "" && var.hosted_zone_id != "" && var.domain_name != "" ? 1 : 0
+
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = "argocd.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = aws_cloudfront_distribution.main[0].domain_name
+    zone_id                = aws_cloudfront_distribution.main[0].hosted_zone_id
+    evaluate_target_health = false
+  }
+}
+
+resource "aws_route53_record" "grafana_alias" {
+  count = var.nlb_hostname != "" && var.hosted_zone_id != "" && var.domain_name != "" ? 1 : 0
+
+  zone_id = data.aws_route53_zone.main[0].zone_id
+  name    = "grafana.${var.domain_name}"
   type    = "A"
 
   alias {

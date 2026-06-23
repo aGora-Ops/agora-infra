@@ -26,4 +26,15 @@ module "vpc" {
   private_subnet_tags = {
     "kubernetes.io/role/internal-elb" = 1
   }
+
+  # VPC Flow Logs — network-plane audit trail, pairs with CloudTrail's
+  # control-plane trail (cloudtrail.tf). ACCEPT+REJECT both captured
+  # ("ALL") since REJECT traffic (denied connections) is usually the more
+  # interesting half for security review.
+  enable_flow_log                                 = true
+  create_flow_log_cloudwatch_log_group            = true
+  create_flow_log_cloudwatch_iam_role             = true
+  flow_log_traffic_type                           = "ALL"
+  flow_log_max_aggregation_interval               = 600
+  flow_log_cloudwatch_log_group_retention_in_days = var.log_retention_days
 }
