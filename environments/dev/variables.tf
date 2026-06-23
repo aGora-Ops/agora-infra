@@ -66,6 +66,21 @@ variable "log_retention_days" {
   default     = 14
 }
 
+# CloudTrail, GuardDuty, and AWS Config are account+region singletons — dev
+# and prod share one AWS account, so only ONE environment's root module may
+# actually declare these resources at a time, or applying the other
+# environment will conflict with (or try to create a duplicate of) what's
+# already there. This flag marks which environment owns them; the same
+# resource blocks exist in both dev's and prod's cloudtrail.tf/config.tf/
+# security.tf, gated by this var, so moving ownership later (e.g. if dev is
+# ever decommissioned in favor of prod) is just flipping this flag in both
+# places — true here, false there — not rewriting any Terraform.
+variable "owns_account_security_baseline" {
+  description = "Whether THIS environment's root module owns the account-wide CloudTrail/GuardDuty/Config singletons. Exactly one of dev/prod should ever be true at a time."
+  type        = bool
+  default     = true
+}
+
 variable "enable_karpenter" {
   description = "Create Karpenter's IAM (controller IRSA role, node role/instance profile, SQS interruption queue). The Helm release + NodePool/EC2NodeClass are applied separately in the platform layer. Existing eks_managed_node_groups are untouched either way — Karpenter only supplements them."
   type        = bool

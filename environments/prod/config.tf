@@ -1,10 +1,10 @@
 # ── AWS Config ────────────────────────────────────────────────────────
-# Compliance-as-code: continuously records resource configuration changes
-# and evaluates them against managed rules. One recorder per region per
-# account (confirmed clean via `aws configservice describe-configuration-
-# recorders` before adding this) — gated by var.owns_account_security_baseline
-# for the same reason as cloudtrail.tf/security.tf's GuardDuty block: dev and
-# prod share one AWS account, only one may actually create this.
+# Compliance-as-code. See environments/dev/config.tf for the full design
+# rationale (own S3 bucket, 4 managed rules scoped to actual project gaps)
+# — identical here, just gated off by default.
+#
+# Account+region singleton — gated by var.owns_account_security_baseline.
+# dev owns this today; see that variable's comment in variables.tf.
 
 resource "aws_s3_bucket" "config" {
   count = var.owns_account_security_baseline ? 1 : 0
@@ -135,10 +135,6 @@ resource "aws_config_configuration_recorder_status" "main" {
   depends_on = [aws_config_delivery_channel.main]
 }
 
-# A small, deliberately scoped set of managed rules covering things this
-# project actually has and has had real gaps in (RDS encryption, public S3
-# exposure, unrestricted security groups) — not the full AWS-recommended
-# conformance pack, which would be noisy for a project this size.
 resource "aws_config_config_rule" "rds_encrypted" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -189,73 +185,4 @@ resource "aws_config_config_rule" "restricted_ssh" {
   }
 
   depends_on = [aws_config_configuration_recorder.main]
-}
-
-# These resources existed without an index before owns_account_security_baseline
-# was introduced — without these moved blocks, the next plan would show
-# every one of them as "destroy and create replacement" (a real AWS Config
-# recorder/S3 bucket recreation), not the no-op address rename this actually is.
-moved {
-  from = aws_s3_bucket.config
-  to   = aws_s3_bucket.config[0]
-}
-
-moved {
-  from = aws_s3_bucket_public_access_block.config
-  to   = aws_s3_bucket_public_access_block.config[0]
-}
-
-moved {
-  from = aws_s3_bucket_lifecycle_configuration.config
-  to   = aws_s3_bucket_lifecycle_configuration.config[0]
-}
-
-moved {
-  from = aws_s3_bucket_policy.config
-  to   = aws_s3_bucket_policy.config[0]
-}
-
-moved {
-  from = aws_iam_role.config
-  to   = aws_iam_role.config[0]
-}
-
-moved {
-  from = aws_iam_role_policy_attachment.config
-  to   = aws_iam_role_policy_attachment.config[0]
-}
-
-moved {
-  from = aws_config_configuration_recorder.main
-  to   = aws_config_configuration_recorder.main[0]
-}
-
-moved {
-  from = aws_config_delivery_channel.main
-  to   = aws_config_delivery_channel.main[0]
-}
-
-moved {
-  from = aws_config_configuration_recorder_status.main
-  to   = aws_config_configuration_recorder_status.main[0]
-}
-
-moved {
-  from = aws_config_config_rule.rds_encrypted
-  to   = aws_config_config_rule.rds_encrypted[0]
-}
-
-moved {
-  from = aws_config_config_rule.s3_public_read_prohibited
-  to   = aws_config_config_rule.s3_public_read_prohibited[0]
-}
-
-moved {
-  from = aws_config_config_rule.s3_public_write_prohibited
-  to   = aws_config_config_rule.s3_public_write_prohibited[0]
-}
-
-moved {
-  from = aws_config_config_rule.restricted_ssh
-  to   = aws_config_config_rule.restricted_ssh[0]
 }

@@ -66,3 +66,16 @@ variable "log_retention_days" {
   default     = 30
 }
 
+# CloudTrail, GuardDuty, and AWS Config are account+region singletons — dev
+# and prod share one AWS account, so only ONE environment's root module may
+# actually create these, or applying the other will conflict with (or
+# duplicate) what's already there. dev owns them today (its tfvars sets this
+# true); prod has the same resource blocks for parity/showcase, gated off by
+# default. Flip this true here (and false in dev) to move ownership — never
+# both true at once.
+variable "owns_account_security_baseline" {
+  description = "Whether THIS environment's root module owns the account-wide CloudTrail/GuardDuty/Config singletons. Exactly one of dev/prod should ever be true at a time."
+  type        = bool
+  default     = false
+}
+

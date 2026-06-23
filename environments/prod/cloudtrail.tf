@@ -1,19 +1,11 @@
 # ── CloudTrail ────────────────────────────────────────────────────────
-# Control-plane audit trail (every API call against this account) — pairs
-# with VPC Flow Logs (network.tf) for the network-plane side. Multi-region:
-# basically free relative to a single-region trail, and catches calls made
-# in any region, including against global services (IAM, CloudFront) that
-# don't have a "home" region.
-#
-# Needs its own S3 bucket — the only other S3 bucket in this project is the
-# Terraform state bucket, created manually outside Terraform (see
-# README's "Bootstrap" section). This one IS Terraform-managed since
-# CloudTrail needs a fresh bucket with a specific policy, not a pre-existing
-# one.
+# Control-plane audit trail. See environments/dev/cloudtrail.tf for the full
+# design rationale (multi-region, own S3 bucket, optional CloudWatch Logs
+# integration) — identical here, just gated off by default.
 #
 # Account+region singleton — gated by var.owns_account_security_baseline so
-# dev and prod (same AWS account) never both try to create one. See that
-# variable's comment in variables.tf.
+# dev and prod (same AWS account) never both try to create one. dev owns
+# this today; see that variable's comment in variables.tf.
 
 resource "aws_s3_bucket" "cloudtrail" {
   count = var.owns_account_security_baseline ? 1 : 0
@@ -50,8 +42,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
 
     filter {}
 
-    # Demo/dev project — 90 days is plenty of audit history without storage
-    # cost creeping up indefinitely as the trail accumulates objects.
     expiration {
       days = 90
     }
@@ -87,9 +77,6 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
   })
 }
 
-# Optional CloudWatch Logs integration — makes trail events queryable/
-# alarmable (Logs Insights, metric filters) instead of only sitting in S3
-# waiting to be downloaded.
 resource "aws_cloudwatch_log_group" "cloudtrail" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -148,48 +135,4 @@ resource "aws_cloudtrail" "main" {
     Environment = local.env
     ManagedBy   = "terraform"
   }
-}
-
-# These resources existed without an index before owns_account_security_baseline
-# was introduced — without these moved blocks, the next plan would show
-# every one of them as "destroy and create replacement" (a real CloudTrail/
-# S3 bucket recreation), not the no-op address rename this actually is.
-moved {
-  from = aws_s3_bucket.cloudtrail
-  to   = aws_s3_bucket.cloudtrail[0]
-}
-
-moved {
-  from = aws_s3_bucket_public_access_block.cloudtrail
-  to   = aws_s3_bucket_public_access_block.cloudtrail[0]
-}
-
-moved {
-  from = aws_s3_bucket_lifecycle_configuration.cloudtrail
-  to   = aws_s3_bucket_lifecycle_configuration.cloudtrail[0]
-}
-
-moved {
-  from = aws_s3_bucket_policy.cloudtrail
-  to   = aws_s3_bucket_policy.cloudtrail[0]
-}
-
-moved {
-  from = aws_cloudwatch_log_group.cloudtrail
-  to   = aws_cloudwatch_log_group.cloudtrail[0]
-}
-
-moved {
-  from = aws_iam_role.cloudtrail_to_cloudwatch
-  to   = aws_iam_role.cloudtrail_to_cloudwatch[0]
-}
-
-moved {
-  from = aws_iam_role_policy.cloudtrail_to_cloudwatch
-  to   = aws_iam_role_policy.cloudtrail_to_cloudwatch[0]
-}
-
-moved {
-  from = aws_cloudtrail.main
-  to   = aws_cloudtrail.main[0]
 }

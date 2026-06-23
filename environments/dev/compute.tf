@@ -17,17 +17,21 @@ module "eks" {
   eks_managed_node_groups = {
     app = {
       instance_types = ["t3.medium"]
-      min_size       = 1
-      max_size       = 4
-      desired_size   = 2
-      labels         = { role = "app" }
+      # Scaled to 0 (2026-06-24) for cost control — control plane fee keeps
+      # running either way, this only cuts the EC2 node cost. Restore to
+      # min_size=1, desired_size=2 to bring the app back online.
+      min_size     = 0
+      max_size     = 4
+      desired_size = 0
+      labels       = { role = "app" }
     }
     worker = {
       instance_types = ["t3.medium"]
-      min_size       = 1
-      max_size       = 3
-      desired_size   = 1
-      labels         = { role = "worker" }
+      # Same as above — restore to min_size=1, desired_size=1.
+      min_size     = 0
+      max_size     = 3
+      desired_size = 0
+      labels       = { role = "worker" }
     }
   }
 

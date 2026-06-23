@@ -35,7 +35,15 @@ module "eks" {
   cluster_addons = {
     coredns    = { most_recent = true }
     kube-proxy = { most_recent = true }
-    vpc-cni    = { most_recent = true }
+    # enableNetworkPolicy — see environments/dev/compute.tf for the full
+    # rationale (NetworkPolicy objects in agora-helm were advisory-only
+    # without this; confirmed via the live aws-eks-nodeagent args).
+    vpc-cni = {
+      most_recent = true
+      configuration_values = jsonencode({
+        enableNetworkPolicy = "true"
+      })
+    }
   }
 
   cluster_enabled_log_types              = ["api", "audit", "authenticator", "controllerManager", "scheduler"]

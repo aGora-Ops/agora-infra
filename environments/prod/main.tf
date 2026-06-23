@@ -10,8 +10,10 @@
 #   messaging.tf   SNS alerts + SQS queue/DLQ + queue IAM policies
 #   secrets.tf     Secrets Manager entries (custom modules/secrets)
 #   dns.tf         ACM cert (optional, when domain_name set)
-#   security.tf    WAFv2 Web ACL
+#   security.tf    WAFv2 Web ACL, GuardDuty (gated off by default)
 #   monitoring.tf  CloudWatch alarms + dashboard
+#   cloudtrail.tf  CloudTrail (gated off by default — see owns_account_security_baseline)
+#   config.tf      AWS Config (gated off by default — see owns_account_security_baseline)
 
 locals {
   name   = var.cluster_name
