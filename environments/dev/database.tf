@@ -25,7 +25,7 @@ resource "aws_db_instance" "postgres" {
   vpc_security_group_ids = [module.eks.node_security_group_id]
 
   skip_final_snapshot        = false
-  backup_retention_period    = 1
+  backup_retention_period    = 7
   auto_minor_version_upgrade = true
   publicly_accessible        = false
 }
