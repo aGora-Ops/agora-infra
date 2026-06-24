@@ -73,8 +73,10 @@ jobs:
     with:
       environment: dev
       working_directory: environments/dev
+      alert_email: ${{ vars.ALERT_EMAIL }}
     secrets:
       AWS_APPLY_ROLE_ARN: ${{ secrets.AWS_APPLY_ROLE_ARN }}
+      
 #test
   apply-prod:
     name: Apply Prod (requires approval)
