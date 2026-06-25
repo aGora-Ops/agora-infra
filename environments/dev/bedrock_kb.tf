@@ -62,6 +62,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "kb_data" {
 resource "aws_iam_role" "kb" {
   name = "${local.name}-bedrock-kb"
 
+  # ArnLike condition omitted intentionally: the knowledge-base ARN doesn't
+  # exist yet when Bedrock first assumes this role to validate the AOSS storage
+  # config (chicken-and-egg). SourceAccount alone is sufficient to prevent
+  # confused-deputy attacks from other accounts.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -70,7 +74,6 @@ resource "aws_iam_role" "kb" {
       Action    = "sts:AssumeRole"
       Condition = {
         StringEquals = { "aws:SourceAccount" = data.aws_caller_identity.current.account_id }
-        ArnLike      = { "aws:SourceArn" = "arn:aws:bedrock:${var.aws_region}:${data.aws_caller_identity.current.account_id}:knowledge-base/*" }
       }
     }]
   })
@@ -106,6 +109,23 @@ resource "aws_iam_role_policy" "kb_bedrock_embed" {
   })
 }
 
+# aoss:APIAccessAll is required by the Bedrock service when it assumes this role
+# to validate and connect to the OpenSearch Serverless collection. Without it,
+# CreateKnowledgeBase returns 403 even if the AOSS data access policy is correct.
+resource "aws_iam_role_policy" "kb_aoss" {
+  name = "kb-aoss-access"
+  role = aws_iam_role.kb.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "aoss:APIAccessAll"
+      Resource = aws_opensearchserverless_collection.kb.arn
+    }]
+  })
+}
+
 # ── Knowledge Base ─────────────────────────────────────────────────────
 
 resource "aws_bedrockagent_knowledge_base" "remediations" {
@@ -136,6 +156,7 @@ resource "aws_bedrockagent_knowledge_base" "remediations" {
     time_sleep.kb_access_policy_propagation,
     aws_iam_role_policy.kb_s3,
     aws_iam_role_policy.kb_bedrock_embed,
+    aws_iam_role_policy.kb_aoss,
   ]
 }
 
@@ -209,8 +230,13 @@ resource "aws_opensearchserverless_access_policy" "kb" {
         Permission   = ["aoss:CreateCollectionItems", "aoss:DeleteCollectionItems", "aoss:UpdateCollectionItems", "aoss:DescribeCollectionItems"]
       }
     ]
+    # Include both the role ARN and the assumed-role session pattern.
+    # When Bedrock assumes the KB role, AOSS sees the caller as
+    # arn:aws:sts::<acct>:assumed-role/<role>/<session> — the base role ARN
+    # alone is not enough.
     Principal = [
       aws_iam_role.kb.arn,
+      "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/${local.name}-bedrock-kb/*",
       module.iam.worker_role_arn,
       module.iam.api_role_arn,
     ]
