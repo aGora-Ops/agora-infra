@@ -1,19 +1,3 @@
-# ── Bedrock Knowledge Base (RAG) + Guardrails ────────────────────────
-#
-# Knowledge Base:
-#   Replaces the custom log_embeddings pgvector pipeline. Bedrock manages
-#   chunking, embedding (Titan v2), and vector storage natively. The worker
-#   syncs remediation docs to the S3 data source; Pipeline Chat retrieves
-#   via the RetrieveAndGenerate API instead of hand-rolled pgvector SQL.
-#
-# Guardrails:
-#   CI logs are untrusted external input fed directly into model prompts —
-#   a malicious log file could attempt prompt injection. This guardrail
-#   blocks the most common attack patterns and is applied to all converse()
-#   calls in the worker and API.
-
-# ── S3 data source bucket ─────────────────────────────────────────────
-
 resource "aws_s3_bucket" "kb_data" {
   bucket        = "${local.name}-kb-data-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
@@ -49,23 +33,15 @@ resource "aws_s3_bucket_lifecycle_configuration" "kb_data" {
     id     = "expire-old-remediation-docs"
     status = "Enabled"
     filter {}
-    # Keep 90 days of remediation history in the KB; older docs fall out
-    # naturally as new analyses replace them (worker upserts by run ID).
     expiration {
       days = 90
     }
   }
 }
 
-# ── IAM role for the Knowledge Base ───────────────────────────────────
-
 resource "aws_iam_role" "kb" {
   name = "${local.name}-bedrock-kb"
 
-  # ArnLike condition omitted intentionally: the knowledge-base ARN doesn't
-  # exist yet when Bedrock first assumes this role to validate the AOSS storage
-  # config (chicken-and-egg). SourceAccount alone is sufficient to prevent
-  # confused-deputy attacks from other accounts.
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -109,9 +85,6 @@ resource "aws_iam_role_policy" "kb_bedrock_embed" {
   })
 }
 
-# aoss:APIAccessAll is required by the Bedrock service when it assumes this role
-# to validate and connect to the OpenSearch Serverless collection. Without it,
-# CreateKnowledgeBase returns 403 even if the AOSS data access policy is correct.
 resource "aws_iam_role_policy" "kb_aoss" {
   name = "kb-aoss-access"
   role = aws_iam_role.kb.id
@@ -125,8 +98,6 @@ resource "aws_iam_role_policy" "kb_aoss" {
     }]
   })
 }
-
-# ── Knowledge Base ─────────────────────────────────────────────────────
 
 resource "aws_bedrockagent_knowledge_base" "remediations" {
   name     = "${local.name}-remediations"
@@ -182,8 +153,6 @@ resource "aws_bedrockagent_data_source" "remediations_s3" {
   }
 }
 
-# ── OpenSearch Serverless (vector store for the KB) ────────────────────
-
 resource "aws_opensearchserverless_security_policy" "kb_encryption" {
   name = "${local.name}-kb-enc"
   type = "encryption"
@@ -201,9 +170,6 @@ resource "aws_opensearchserverless_security_policy" "kb_network" {
   name = "${local.name}-kb-net"
   type = "network"
 
-  # AllowFromPublic must be true when no VPC endpoint is configured — access
-  # is restricted to authorised IAM principals via the data access policy, not
-  # by network topology. Set to false only after adding a VPC endpoint.
   policy = jsonencode([{
     Rules = [
       { ResourceType = "collection", Resource = ["collection/${local.name}-kb"] },
@@ -230,10 +196,6 @@ resource "aws_opensearchserverless_access_policy" "kb" {
         Permission   = ["aoss:CreateCollectionItems", "aoss:DeleteCollectionItems", "aoss:UpdateCollectionItems", "aoss:DescribeCollectionItems"]
       }
     ]
-    # Include both the role ARN and the assumed-role session pattern.
-    # When Bedrock assumes the KB role, AOSS sees the caller as
-    # arn:aws:sts::<acct>:assumed-role/<role>/<session> — the base role ARN
-    # alone is not enough.
     Principal = [
       aws_iam_role.kb.arn,
       "arn:aws:sts::${data.aws_caller_identity.current.account_id}:assumed-role/${local.name}-bedrock-kb/*",
@@ -253,19 +215,10 @@ resource "aws_opensearchserverless_collection" "kb" {
   ]
 }
 
-# Access policies can take up to 60s to propagate before Bedrock can create
-# the vector index inside the collection. Without this sleep the KB create
-# call hits a 403 immediately after the collection becomes ACTIVE.
 resource "time_sleep" "kb_access_policy_propagation" {
   depends_on      = [aws_opensearchserverless_access_policy.kb]
   create_duration = "60s"
 }
-
-# ── Bedrock Guardrail ──────────────────────────────────────────────────
-# Applied to all converse() calls in the worker and API. Guards against
-# prompt injection via malicious CI log content. The guardrail ID and
-# version are written to Secrets Manager so pods pick them up via
-# External Secrets without a re-deploy on every guardrail update.
 
 resource "aws_bedrock_guardrail" "main" {
   name                      = "${local.name}-guardrail"
@@ -330,8 +283,6 @@ resource "aws_bedrock_guardrail_version" "main" {
   description   = "Initial version"
 }
 
-# ── IAM: allow worker + api to call Bedrock with the guardrail ─────────
-
 resource "aws_iam_policy" "bedrock_guardrail" {
   name = "${local.name}-bedrock-guardrail"
   policy = jsonencode({
@@ -353,8 +304,6 @@ resource "aws_iam_role_policy_attachment" "api_guardrail" {
   role       = module.iam.api_role_name
   policy_arn = aws_iam_policy.bedrock_guardrail.arn
 }
-
-# ── Outputs (written to Secrets Manager via secrets.tf additions) ──────
 
 output "kb_id" {
   value       = aws_bedrockagent_knowledge_base.remediations.id

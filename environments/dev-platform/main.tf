@@ -128,17 +128,6 @@ resource "kubernetes_manifest" "gateway" {
     }
     spec = {
       gatewayClassName = "kgateway"
-      # HTTP only — TLS terminates at CloudFront (the edge), not here.
-      # Origin traffic (CloudFront -> NLB -> kGateway) never leaves AWS's
-      # internal network, so this hop being plaintext doesn't create a
-      # public exposure; it's the same "edge TLS, private-network internal
-      # hop" pattern AWS documents for CloudFront-fronted ALB/NLB origins.
-      # An "https" listener used to exist here referencing a
-      # kgateway-system/agora-tls Secret that was never actually created —
-      # dead config, removed rather than wired up, since adding a second
-      # real TLS termination point here would just be cost/complexity
-      # (cert-manager + ACME renewal) for a security property CloudFront
-      # already provides.
       listeners = [
         {
           name          = "http"
@@ -153,11 +142,6 @@ resource "kubernetes_manifest" "gateway" {
   depends_on = [helm_release.kgateway]
 }
 
-# Allows HTTPRoutes in agora/argocd/monitoring to reference the Gateway in
-# kgateway-system. argocd/monitoring were added alongside their respective
-# HTTPRoutes below (argocd-server, grafana) — without an entry here for a
-# namespace, kGateway rejects that namespace's HTTPRoute with a
-# RefNotPermitted condition even though the route object itself applies fine.
 resource "kubernetes_manifest" "reference_grant" {
   manifest = {
     apiVersion = "gateway.networking.k8s.io/v1beta1"
@@ -242,31 +226,17 @@ resource "helm_release" "argocd" {
   create_namespace = true
   version          = "7.6.12"
 
-  # ClusterIP, not its own public LoadBalancer/NLB — reachable only via the
-  # argocd-server HTTPRoute below, through the same CloudFront+WAF-fronted
-  # NLB every other service in this project already uses. Previously had
-  # its own internet-facing NLB with no WAF and no CloudFront in front of
-  # it at all — the weakest public exposure in this project before this
-  # change.
   set {
     name  = "server.service.type"
     value = "ClusterIP"
   }
 
-  # argocd-server forces an HTTP->HTTPS redirect by default. TLS already
-  # terminates at CloudFront (see the Gateway resource's comment above) —
-  # origin traffic here is plain HTTP, so without --insecure this would
-  # redirect-loop.
   set {
     name  = "configs.params.server\\.insecure"
     value = "true"
   }
 }
 
-# Routes argocd.<domain> -> argocd-server, through the same Gateway/NLB/
-# CloudFront/WAF every app service already uses. Hostname-matched (not
-# path-prefix, like the app routes) so there's no risk of colliding with
-# agora-frontend's catch-all "/" route.
 resource "kubernetes_manifest" "argocd_httproute" {
   count = var.domain_name != "" ? 1 : 0
 
@@ -337,14 +307,6 @@ resource "kubernetes_manifest" "argocd_app" {
         path           = "charts/${each.key}"
         helm = {
           valueFiles = ["values.yaml", "values.dev.yaml"]
-          # Overrides the committed values.dev.yaml's aws.mainAccountId/
-          # clusterName with whatever account this Terraform run is actually
-          # targeting. Makes a fresh deploy to a brand-new AWS account work
-          # correctly on the FIRST sync, before any CI run has ever rewritten
-          # the committed chart values (helm-update.yml only fixes this field
-          # on each subsequent image push, not on day one). agora-frontend and
-          # agora-mcp-github don't define aws.* in their values — Helm just
-          # ignores the unused parameter for those two.
           parameters = [
             { name = "aws.mainAccountId", value = data.aws_caller_identity.current.account_id },
             { name = "aws.clusterName", value = data.terraform_remote_state.infra.outputs.cluster_name },
@@ -365,14 +327,6 @@ resource "kubernetes_manifest" "argocd_app" {
   depends_on = [helm_release.argocd, kubernetes_secret.argocd_repo_helm]
 }
 
-# ── Karpenter (controller + NodePool/EC2NodeClass) ──────────────────────
-# Supplements the existing eks_managed_node_groups (compute.tf in the main
-# infra layer) — those keep running every current pod unchanged. Nothing
-# schedules onto a Karpenter-specific nodeSelector today, so the NodePool
-# stays dormant: Karpenter only launches a node when a pod is unschedulable
-# against existing capacity, which doesn't happen in this demo's normal
-# traffic. Gated behind enable_karpenter; requires the main infra layer's
-# own enable_karpenter = true (its IAM/queue outputs are null otherwise).
 resource "helm_release" "karpenter" {
   count = var.enable_karpenter ? 1 : 0
 
@@ -408,8 +362,6 @@ resource "kubernetes_manifest" "karpenter_node_class" {
     metadata   = { name = "default" }
     spec = {
       role = data.terraform_remote_state.infra.outputs.karpenter_node_role_name
-      # Karpenter v1's "alias" form always resolves to the latest AL2023 AMI
-      # for the cluster's Kubernetes version — no amiFamily needed alongside it.
       amiSelectorTerms = [
         { alias = "al2023@latest" }
       ]
@@ -447,8 +399,6 @@ resource "kubernetes_manifest" "karpenter_node_pool" {
           ]
         }
       }
-      # Conservative cap for a demo cluster — Karpenter will never launch
-      # more capacity than this even if something does request scheduling.
       limits = { cpu = "8" }
       disruption = {
         consolidationPolicy = "WhenEmptyOrUnderutilized"
@@ -460,12 +410,6 @@ resource "kubernetes_manifest" "karpenter_node_pool" {
   depends_on = [kubernetes_manifest.karpenter_node_class]
 }
 
-# ── Monitoring (kube-prometheus-stack via ArgoCD) ───────────────────────
-# Same GitOps pattern as the per-service Applications above, but pointed at
-# the upstream prometheus-community chart instead of agora-helm. Grafana's
-# Service is intentionally left ClusterIP (no LoadBalancer, no public NLB) —
-# access it via `kubectl port-forward svc/monitoring-grafana -n monitoring
-# 3000:80`. No extra cost, no new public attack surface.
 resource "kubernetes_manifest" "argocd_app_monitoring" {
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
@@ -481,18 +425,10 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
         chart          = "kube-prometheus-stack"
         targetRevision = "65.5.1"
         helm = {
-          # The chart's CRDs (Prometheus, Alertmanager, etc.) embed OpenAPI
-          # schemas large enough to exceed the 262144-byte last-applied-
-          # config annotation limit — ServerSideApply alone doesn't avoid
-          # this for CRDs specifically. Applied once, manually, via
-          # `kubectl apply --server-side` against the chart's crds/
-          # directory; ArgoCD only manages the workload resources here.
           skipCrds = true
           values = yamlencode({
             grafana = {
               service = { type = "ClusterIP" }
-              # Demo cluster — single replica is enough; lower default
-              # resource asks than the chart's production defaults.
               resources = {
                 requests = { cpu = "50m", memory = "128Mi" }
                 limits   = { cpu = "200m", memory = "256Mi" }
@@ -517,10 +453,6 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
       }
       syncPolicy = {
         automated = { prune = true, selfHeal = true }
-        # kube-prometheus-stack's CRDs (Prometheus, Alertmanager, etc.) embed
-        # large OpenAPI schemas that exceed the 262144-byte annotation limit
-        # under client-side apply — a known issue with this chart. Server-side
-        # apply doesn't hit that limit.
         syncOptions = ["CreateNamespace=true", "ServerSideApply=true"]
       }
     }
@@ -529,10 +461,6 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
   depends_on = [helm_release.argocd]
 }
 
-# Routes grafana.<domain> -> the chart's Grafana Service, same pattern as
-# argocd-server above. Grafana's Service stays ClusterIP (no change there) —
-# this just gives it a real, WAF-protected path in instead of the previous
-# only-reachable-via-kubectl-port-forward state.
 resource "kubernetes_manifest" "grafana_httproute" {
   count = var.domain_name != "" ? 1 : 0
 

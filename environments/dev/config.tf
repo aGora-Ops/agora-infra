@@ -1,11 +1,3 @@
-# ── AWS Config ────────────────────────────────────────────────────────
-# Compliance-as-code: continuously records resource configuration changes
-# and evaluates them against managed rules. One recorder per region per
-# account (confirmed clean via `aws configservice describe-configuration-
-# recorders` before adding this) — gated by var.owns_account_security_baseline
-# for the same reason as cloudtrail.tf/security.tf's GuardDuty block: dev and
-# prod share one AWS account, only one may actually create this.
-
 resource "aws_s3_bucket" "config" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -135,10 +127,6 @@ resource "aws_config_configuration_recorder_status" "main" {
   depends_on = [aws_config_delivery_channel.main]
 }
 
-# A small, deliberately scoped set of managed rules covering things this
-# project actually has and has had real gaps in (RDS encryption, public S3
-# exposure, unrestricted security groups) — not the full AWS-recommended
-# conformance pack, which would be noisy for a project this size.
 resource "aws_config_config_rule" "rds_encrypted" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -191,10 +179,6 @@ resource "aws_config_config_rule" "restricted_ssh" {
   depends_on = [aws_config_configuration_recorder.main]
 }
 
-# These resources existed without an index before owns_account_security_baseline
-# was introduced — without these moved blocks, the next plan would show
-# every one of them as "destroy and create replacement" (a real AWS Config
-# recorder/S3 bucket recreation), not the no-op address rename this actually is.
 moved {
   from = aws_s3_bucket.config
   to   = aws_s3_bucket.config[0]

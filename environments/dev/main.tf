@@ -1,25 +1,3 @@
-# ── Root / shared ────────────────────────────────────────────────────
-# Shared locals + data sources for the dev environment. Each concern lives
-# in its own file in this directory (Terraform reads all *.tf as one module):
-#
-#   network.tf     VPC, subnets, NAT
-#   compute.tf     EKS cluster, node groups, add-ons, EBS CSI IRSA
-#   database.tf    RDS PostgreSQL + generated password
-#   registry.tf    ECR repos
-#   iam.tf         per-service IRSA roles (custom modules/iam)
-#   messaging.tf   SNS alerts + SQS queue/DLQ + queue IAM policies
-#   secrets.tf     Secrets Manager entries (custom modules/secrets)
-#   dns.tf         Route53 zone data source (optional, when hosted_zone_id set)
-#   security.tf    WAFv2 Web ACL (REGIONAL), GuardDuty, GuardDuty->SNS
-#   cdn.tf         CloudFront + WAFv2 Web ACL (CLOUDFRONT scope), optional
-#   monitoring.tf  CloudWatch alarms + dashboard
-#   cloudtrail.tf  Multi-region CloudTrail + S3 bucket + CloudWatch Logs
-#   config.tf      AWS Config recorder + S3 bucket + 4 managed rules
-#
-# Bedrock agents are NOT created here — they live in the Bedrock AWS account.
-# The worker assumes BEDROCK_CROSS_ACCOUNT_ROLE_ARN to call them cross-account;
-# agent IDs are filled manually in the agora/dev/worker secret.
-
 locals {
   name   = var.cluster_name
   region = var.aws_region

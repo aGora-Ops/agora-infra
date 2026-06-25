@@ -1,6 +1,3 @@
-# ── Networking ───────────────────────────────────────────────────────
-# VPC with public / private / database subnets across 3 AZs, single NAT.
-
 module "vpc" {
   source  = "terraform-aws-modules/vpc/aws"
   version = "~> 5.8"
@@ -27,10 +24,6 @@ module "vpc" {
     "kubernetes.io/role/internal-elb" = 1
   }
 
-  # VPC Flow Logs — network-plane audit trail, pairs with CloudTrail's
-  # control-plane trail (cloudtrail.tf). ACCEPT+REJECT both captured
-  # ("ALL") since REJECT traffic (denied connections) is usually the more
-  # interesting half for security review.
   enable_flow_log                                 = true
   create_flow_log_cloudwatch_log_group            = true
   create_flow_log_cloudwatch_iam_role             = true

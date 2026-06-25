@@ -1,7 +1,3 @@
-# ── Messaging (SQS + SNS) ────────────────────────────────────────────
-# SNS alert topic (email), the webhook event queue + DLQ, and the IAM
-# policies binding webhook (send) and worker (consume) to the queue.
-
 resource "aws_sns_topic" "alerts" {
   name = "${local.name}-alerts"
 }

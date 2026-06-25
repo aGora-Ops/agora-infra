@@ -1,14 +1,3 @@
-# ── CDN (CloudFront + WAF) ───────────────────────────────────────────
-# CloudFront in front of the kGateway NLB: terminates TLS using your
-# manually-created ACM cert, and is the only way to attach WAF protection
-# to an NLB (WAFv2 REGIONAL doesn't support NLBs directly — CLOUDFRONT scope
-# does). Origin traffic to the NLB stays plain HTTP, matching the NLB/Gateway
-# setup exactly as it is today — nothing about the existing traffic path
-# changes. Entirely optional: skipped when var.nlb_hostname is empty.
-
-# CLOUDFRONT-scope Web ACLs must be created in us-east-1. This project
-# already runs in us-east-1 (var.aws_region), so no provider alias is
-# needed — but if that ever changes, this resource would need one.
 resource "aws_wafv2_web_acl" "cloudfront" {
   count = var.nlb_hostname != "" ? 1 : 0
 
@@ -19,8 +8,6 @@ resource "aws_wafv2_web_acl" "cloudfront" {
     allow {}
   }
 
-  # GitHub-Hookshot POSTs to /webhooks/github must bypass the common rule set,
-  # which blocks them (SizeRestrictions_BODY or NoUserAgent_HEADER).
   rule {
     name     = "AllowGitHubWebhooks"
     priority = 0
@@ -86,10 +73,6 @@ resource "aws_cloudfront_distribution" "main" {
   comment         = "${local.name} — CloudFront in front of the kGateway NLB"
   web_acl_id      = aws_wafv2_web_acl.cloudfront[0].arn
 
-  # argocd./grafana. share this one distribution — kGateway routes by Host
-  # header downstream (HTTPRoute hostnames in dev-platform), so one
-  # CloudFront distribution in front of one NLB serves all three, instead of
-  # ArgoCD needing its own separate NLB+distribution.
   aliases = var.domain_name != "" ? [
     var.domain_name,
     "argocd.${var.domain_name}",
@@ -114,9 +97,6 @@ resource "aws_cloudfront_distribution" "main" {
     target_origin_id       = "${local.name}-nlb"
     viewer_protocol_policy = "redirect-to-https"
 
-    # API/app traffic — don't cache by default, forward everything through.
-    # Static asset caching can be tuned later with path-based behaviors if
-    # the frontend serves cacheable assets directly through this domain.
     forwarded_values {
       query_string = true
       headers      = ["*"]
@@ -157,11 +137,6 @@ resource "aws_route53_record" "cdn_alias" {
   }
 }
 
-# argocd./grafana. point at the SAME CloudFront distribution as the apex —
-# CloudFront only cares that the hostname is in its aliases list (set
-# above); routing to the right backend Service happens downstream, via
-# kGateway's HTTPRoute hostname match on whatever Host header the request
-# actually carries.
 resource "aws_route53_record" "argocd_alias" {
   count = var.nlb_hostname != "" && var.hosted_zone_id != "" && var.domain_name != "" ? 1 : 0
 

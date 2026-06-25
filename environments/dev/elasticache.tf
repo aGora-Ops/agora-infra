@@ -1,13 +1,3 @@
-# ── ElastiCache (Redis) ───────────────────────────────────────────────
-# Replaces the in-cluster Redis pod. A managed single-node t3.micro gives
-# persistence, automatic minor-version upgrades, and CloudWatch metrics
-# without any pod management overhead.
-#
-# Single AZ (no automatic failover) — this is dev; the cost of a replica
-# pair ($30+/mo extra) isn't justified here. If Redis goes down, rate-limit
-# state is lost (non-critical) and in-flight Celery tasks drain from SQS on
-# the next worker restart (safe by design).
-
 resource "aws_elasticache_subnet_group" "redis" {
   name       = "${local.name}-redis"
   subnet_ids = module.vpc.private_subnets
@@ -58,9 +48,6 @@ resource "aws_elasticache_replication_group" "redis" {
 
   at_rest_encryption_enabled = true
   transit_encryption_enabled = true
-  # auth_token requires transit_encryption_enabled — use token-based auth
-  # so the REDIS_URL carries the password and no open access is possible
-  # even from inside the cluster.
   auth_token = random_password.redis_auth.result
 
   automatic_failover_enabled = false
@@ -68,7 +55,6 @@ resource "aws_elasticache_replication_group" "redis" {
 
   auto_minor_version_upgrade = true
 
-  # 1-day snapshot window, kept for 3 days — cheap safety net for dev.
   snapshot_window          = "03:00-04:00"
   snapshot_retention_limit = 3
 

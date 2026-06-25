@@ -1,6 +1,3 @@
-# ── Container Registry (ECR) ─────────────────────────────────────────
-# One immutable-tag repo per service image.
-
 module "ecr" {
   source  = "terraform-aws-modules/ecr/aws"
   version = "~> 2.2"

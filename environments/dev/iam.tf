@@ -1,7 +1,3 @@
-# ── IAM / IRSA ───────────────────────────────────────────────────────
-# Per-service IRSA roles (api / webhook / worker / external-secrets /
-# cloudwatch-observability) plus the Bedrock invoke + cross-account policy.
-
 module "iam" {
   source = "../../modules/iam"
 

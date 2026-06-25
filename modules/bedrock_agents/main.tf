@@ -58,16 +58,6 @@ resource "aws_bedrockagent_agent_alias" "this" {
   ]
 }
 
-# Return-of-Control action group: agora-mcp-github READ-ONLY tools.
-# Bedrock streams a returnControl event instead of executing anything; the
-# worker (in-cluster, next to the MCP servers) calls the real MCP tool and
-# re-invokes the agent with the result. No Lambda involved.
-#
-# Deliberately read-only: branch creation, commits, and PR opens stay outside
-# agent reach. They only happen via the api-service "Raise PR" endpoint after
-# a human reviews the suggestion — this keeps the prompt-injection blast
-# radius limited to a bad suggestion the user can reject, not an autonomous
-# write to the user's repository.
 resource "aws_bedrockagent_agent_action_group" "github_tools" {
   for_each = toset([for k in ["root_cause", "yaml_fixer"] : k if contains(keys(var.agents), k)])
 

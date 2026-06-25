@@ -1,20 +1,3 @@
-# ── CloudTrail ────────────────────────────────────────────────────────
-# Control-plane audit trail (every API call against this account) — pairs
-# with VPC Flow Logs (network.tf) for the network-plane side. Multi-region:
-# basically free relative to a single-region trail, and catches calls made
-# in any region, including against global services (IAM, CloudFront) that
-# don't have a "home" region.
-#
-# Needs its own S3 bucket — the only other S3 bucket in this project is the
-# Terraform state bucket, created manually outside Terraform (see
-# README's "Bootstrap" section). This one IS Terraform-managed since
-# CloudTrail needs a fresh bucket with a specific policy, not a pre-existing
-# one.
-#
-# Account+region singleton — gated by var.owns_account_security_baseline so
-# dev and prod (same AWS account) never both try to create one. See that
-# variable's comment in variables.tf.
-
 resource "aws_s3_bucket" "cloudtrail" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -50,8 +33,6 @@ resource "aws_s3_bucket_lifecycle_configuration" "cloudtrail" {
 
     filter {}
 
-    # Demo/dev project — 90 days is plenty of audit history without storage
-    # cost creeping up indefinitely as the trail accumulates objects.
     expiration {
       days = 90
     }
@@ -87,9 +68,6 @@ resource "aws_s3_bucket_policy" "cloudtrail" {
   })
 }
 
-# Optional CloudWatch Logs integration — makes trail events queryable/
-# alarmable (Logs Insights, metric filters) instead of only sitting in S3
-# waiting to be downloaded.
 resource "aws_cloudwatch_log_group" "cloudtrail" {
   count = var.owns_account_security_baseline ? 1 : 0
 
@@ -150,10 +128,6 @@ resource "aws_cloudtrail" "main" {
   }
 }
 
-# These resources existed without an index before owns_account_security_baseline
-# was introduced — without these moved blocks, the next plan would show
-# every one of them as "destroy and create replacement" (a real CloudTrail/
-# S3 bucket recreation), not the no-op address rename this actually is.
 moved {
   from = aws_s3_bucket.cloudtrail
   to   = aws_s3_bucket.cloudtrail[0]

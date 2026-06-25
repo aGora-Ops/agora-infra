@@ -1,7 +1,3 @@
-# ── Database (RDS PostgreSQL) ────────────────────────────────────────
-# Single-AZ db.t3.micro to comply with SCP cost guardrails. Password is
-# generated once and consumed by the secrets module.
-
 resource "random_password" "db_password" {
   length  = 32
   special = false

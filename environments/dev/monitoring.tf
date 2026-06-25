@@ -1,7 +1,3 @@
-# ── Monitoring (CloudWatch) ──────────────────────────────────────────
-# RDS alarms (CPU, free storage) → SNS, plus a dashboard covering RDS, SQS
-# and EKS Container Insights.
-
 resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   alarm_name          = "${local.name}-rds-cpu-high"
   comparison_operator = "GreaterThanThreshold"
