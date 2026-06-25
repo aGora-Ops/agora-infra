@@ -180,12 +180,15 @@ resource "aws_opensearchserverless_security_policy" "kb_network" {
   name = "${local.name}-kb-net"
   type = "network"
 
+  # AllowFromPublic must be true when no VPC endpoint is configured — access
+  # is restricted to authorised IAM principals via the data access policy, not
+  # by network topology. Set to false only after adding a VPC endpoint.
   policy = jsonencode([{
     Rules = [
       { ResourceType = "collection", Resource = ["collection/${local.name}-kb"] },
       { ResourceType = "dashboard", Resource = ["collection/${local.name}-kb"] }
     ]
-    AllowFromPublic = false
+    AllowFromPublic = true
   }])
 }
 
@@ -232,6 +235,7 @@ resource "aws_opensearchserverless_collection" "kb" {
 
 resource "aws_bedrock_guardrail" "main" {
   name                      = "${local.name}-guardrail"
+  description               = "Blocks prompt injection and secret exfiltration attempts via CI log content"
   blocked_input_messaging   = "This request was blocked by aGorA safety controls."
   blocked_outputs_messaging = "This response was blocked by aGorA safety controls."
 

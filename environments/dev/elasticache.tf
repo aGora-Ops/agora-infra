@@ -19,7 +19,7 @@ resource "aws_elasticache_subnet_group" "redis" {
 
 resource "aws_security_group" "redis" {
   name        = "${local.name}-redis"
-  description = "ElastiCache Redis — only EKS nodes may connect"
+  description = "ElastiCache Redis - only EKS nodes may connect"
   vpc_id      = module.vpc.vpc_id
 
   ingress {
