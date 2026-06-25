@@ -437,8 +437,8 @@ resource "kubernetes_manifest" "argocd_app_monitoring" {
             prometheus = {
               prometheusSpec = {
                 resources = {
-                  requests = { cpu = "100m", memory = "256Mi" }
-                  limits   = { cpu = "500m", memory = "512Mi" }
+                  requests = { cpu = "100m", memory = "512Mi" }
+                  limits   = { cpu = "500m", memory = "1Gi" }
                 }
                 retention = "7d"
               }
