@@ -26,14 +26,11 @@ on:
         type: choice
         options: [dev, prod]
 
-# Reusable terraform-plan/apply jobs need these; a called workflow can't get
-# more than the caller grants, so they must be declared here or the run fails
-# to start ("requesting id-token: write ... allowed id-token: none").
 permissions:
-  id-token: write        # OIDC federation to AWS
-  contents: read         # checkout
-  pull-requests: write   # post the plan/cost as a PR comment
-  security-events: write # upload Checkov SARIF findings to the Security tab
+  id-token: write
+  contents: read
+  pull-requests: write
+  security-events: write
 
 jobs:
   plan-dev:
