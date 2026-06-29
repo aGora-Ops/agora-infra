@@ -128,6 +128,13 @@ resource "kubernetes_manifest" "gateway" {
     }
     spec = {
       gatewayClassName = "kgateway"
+      infrastructure = {
+        annotations = {
+          "service.beta.kubernetes.io/aws-load-balancer-type"            = "external"
+          "service.beta.kubernetes.io/aws-load-balancer-nlb-target-type" = "ip"
+          "service.beta.kubernetes.io/aws-load-balancer-scheme"          = "internet-facing"
+        }
+      }
       listeners = [
         {
           name          = "http"

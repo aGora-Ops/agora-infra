@@ -54,6 +54,7 @@ module "secrets" {
     }
     frontend = {
       NEXTAUTH_SECRET      = random_password.secret_key.result
+      NEXTAUTH_URL         = var.frontend_url
       GITHUB_CLIENT_ID     = var.github_client_id
       GITHUB_CLIENT_SECRET = var.github_client_secret
     }

@@ -50,9 +50,9 @@ variable "github_webhook_secret" {
 }
 
 variable "frontend_url" {
-  description = "Public URL of the frontend (used for OAuth redirects and CORS)"
+  description = "NLB hostname for the frontend — set after first deploy once the NLB URL is known"
   type        = string
-  default     = "https://stagecraft.example.com"
+  default     = ""
 }
 
 variable "alert_email" {
