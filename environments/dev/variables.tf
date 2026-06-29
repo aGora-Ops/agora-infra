@@ -1,4 +1,4 @@
-variable "aws_region" {
+﻿variable "aws_region" {
   description = "AWS region"
   type        = string
   default     = "us-east-1"
@@ -7,7 +7,7 @@ variable "aws_region" {
 variable "cluster_name" {
   description = "EKS cluster name"
   type        = string
-  default     = "agora-dev"
+  default     = "stagecraft-dev"
 }
 
 variable "vpc_cidr" {
@@ -23,7 +23,7 @@ variable "kubernetes_version" {
 }
 
 variable "domain_name" {
-  description = "Root domain name (e.g. agora.example.com)"
+  description = "Root domain name (e.g. stagecraft.example.com)"
   type        = string
   default     = ""
 }
@@ -52,7 +52,7 @@ variable "github_webhook_secret" {
 variable "frontend_url" {
   description = "Public URL of the frontend (used for OAuth redirects and CORS)"
   type        = string
-  default     = "https://agora.example.com"
+  default     = "https://stagecraft.example.com"
 }
 
 variable "alert_email" {

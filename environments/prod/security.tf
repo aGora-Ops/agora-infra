@@ -1,4 +1,4 @@
-# ── Security (WAF) ───────────────────────────────────────────────────
+﻿# ── Security (WAF) ───────────────────────────────────────────────────
 # Regional WAFv2 Web ACL with the AWS common managed rule set.
 
 resource "aws_wafv2_web_acl" "main" {
@@ -68,7 +68,7 @@ resource "aws_guardduty_detector" "main" {
   finding_publishing_frequency = "FIFTEEN_MINUTES"
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }

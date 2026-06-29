@@ -1,4 +1,4 @@
-# ── Compute (EKS) ────────────────────────────────────────────────────
+﻿# ── Compute (EKS) ────────────────────────────────────────────────────
 # EKS cluster (private endpoint), prod-sized node groups, core add-ons,
 # and the EBS CSI IRSA role.
 
@@ -36,7 +36,7 @@ module "eks" {
     coredns    = { most_recent = true }
     kube-proxy = { most_recent = true }
     # enableNetworkPolicy — see environments/dev/compute.tf for the full
-    # rationale (NetworkPolicy objects in agora-helm were advisory-only
+    # rationale (NetworkPolicy objects in stagecraft-helm were advisory-only
     # without this; confirmed via the live aws-eks-nodeagent args).
     vpc-cni = {
       most_recent = true

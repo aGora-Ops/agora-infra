@@ -1,4 +1,4 @@
-resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
+﻿resource "aws_cloudwatch_metric_alarm" "rds_cpu_high" {
   alarm_name          = "${local.name}-rds-cpu-high"
   comparison_operator = "GreaterThanThreshold"
   evaluation_periods  = 3
@@ -59,8 +59,8 @@ resource "aws_cloudwatch_dashboard" "main" {
           title  = "SQS Queue Depth (main + DLQ)"
           region = var.aws_region
           metrics = [
-            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "agora-webhooks"],
-            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "agora-webhooks-dlq"],
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "stagecraft-webhooks"],
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "stagecraft-webhooks-dlq"],
           ]
         }
       },

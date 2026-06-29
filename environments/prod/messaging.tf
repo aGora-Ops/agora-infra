@@ -1,4 +1,4 @@
-# ── Messaging (SQS + SNS) ────────────────────────────────────────────
+﻿# ── Messaging (SQS + SNS) ────────────────────────────────────────────
 # SNS alert topic (email), the webhook event queue + DLQ, and the IAM
 # policies binding webhook (send) and worker (consume) to the queue.
 
@@ -15,7 +15,7 @@ resource "aws_sns_topic_subscription" "alerts_email" {
 module "sqs" {
   source = "../../modules/sqs"
 
-  name                = "agora-webhooks"
+  name                = "stagecraft-webhooks"
   environment         = local.env
   max_receive_count   = 3
   sender_role_arn     = module.iam.webhook_role_arn

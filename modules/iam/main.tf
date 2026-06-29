@@ -1,14 +1,14 @@
-
+﻿
 module "api_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.39"
 
-  role_name = "${var.cluster_name}-agora-api"
+  role_name = "${var.cluster_name}-stagecraft-api"
 
   oidc_providers = {
     main = {
       provider_arn               = var.oidc_provider_arn
-      namespace_service_accounts = ["${var.kubernetes_namespace}:agora-api"]
+      namespace_service_accounts = ["${var.kubernetes_namespace}:stagecraft-api"]
     }
   }
 
@@ -26,7 +26,7 @@ resource "aws_iam_policy" "api_sqs_publish" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["sqs:SendMessage", "sqs:GetQueueUrl", "sqs:GetQueueAttributes"]
-      Resource = "arn:aws:sqs:${var.aws_region}:${var.account_id}:agora-*"
+      Resource = "arn:aws:sqs:${var.aws_region}:${var.account_id}:stagecraft-*"
     }]
   })
 }
@@ -35,12 +35,12 @@ module "webhook_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.39"
 
-  role_name = "${var.cluster_name}-agora-webhook"
+  role_name = "${var.cluster_name}-stagecraft-webhook"
 
   oidc_providers = {
     main = {
       provider_arn               = var.oidc_provider_arn
-      namespace_service_accounts = ["${var.kubernetes_namespace}:agora-webhook"]
+      namespace_service_accounts = ["${var.kubernetes_namespace}:stagecraft-webhook"]
     }
   }
 }
@@ -49,12 +49,12 @@ module "worker_role" {
   source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
   version = "~> 5.39"
 
-  role_name = "${var.cluster_name}-agora-worker"
+  role_name = "${var.cluster_name}-stagecraft-worker"
 
   oidc_providers = {
     main = {
       provider_arn               = var.oidc_provider_arn
-      namespace_service_accounts = ["${var.kubernetes_namespace}:agora-worker"]
+      namespace_service_accounts = ["${var.kubernetes_namespace}:stagecraft-worker"]
     }
   }
 
@@ -157,7 +157,7 @@ resource "aws_iam_policy" "secrets_read" {
     Statement = [{
       Effect   = "Allow"
       Action   = ["secretsmanager:GetSecretValue", "secretsmanager:DescribeSecret"]
-      Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.account_id}:secret:agora/*"
+      Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.account_id}:secret:stagecraft/*"
     }]
   })
 }

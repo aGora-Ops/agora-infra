@@ -1,4 +1,4 @@
-resource "aws_sns_topic" "alerts" {
+﻿resource "aws_sns_topic" "alerts" {
   name = "${local.name}-alerts"
 }
 
@@ -11,7 +11,7 @@ resource "aws_sns_topic_subscription" "alerts_email" {
 module "sqs" {
   source = "../../modules/sqs"
 
-  name                = "agora-webhooks"
+  name                = "stagecraft-webhooks"
   environment         = local.env
   max_receive_count   = 3
   sender_role_arn     = module.iam.webhook_role_arn

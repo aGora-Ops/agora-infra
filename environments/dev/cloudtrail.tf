@@ -1,11 +1,11 @@
-resource "aws_s3_bucket" "cloudtrail" {
+﻿resource "aws_s3_bucket" "cloudtrail" {
   count = var.owns_account_security_baseline ? 1 : 0
 
   bucket        = "${local.name}-cloudtrail-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }
@@ -122,7 +122,7 @@ resource "aws_cloudtrail" "main" {
   depends_on = [aws_s3_bucket_policy.cloudtrail]
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }

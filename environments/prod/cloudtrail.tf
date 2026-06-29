@@ -1,4 +1,4 @@
-# ── CloudTrail ────────────────────────────────────────────────────────
+﻿# ── CloudTrail ────────────────────────────────────────────────────────
 # Control-plane audit trail. See environments/dev/cloudtrail.tf for the full
 # design rationale (multi-region, own S3 bucket, optional CloudWatch Logs
 # integration) — identical here, just gated off by default.
@@ -14,7 +14,7 @@ resource "aws_s3_bucket" "cloudtrail" {
   force_destroy = true
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }
@@ -131,7 +131,7 @@ resource "aws_cloudtrail" "main" {
   depends_on = [aws_s3_bucket_policy.cloudtrail]
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }

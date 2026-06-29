@@ -1,4 +1,4 @@
-variable "aws_region" {
+﻿variable "aws_region" {
   description = "AWS region for the Bedrock agents"
   type        = string
   default     = "us-east-1"
@@ -18,7 +18,7 @@ variable "assume_role_arn" {
 variable "cluster_name" {
   description = "Prefix used for agent/role naming"
   type        = string
-  default     = "agora"
+  default     = "stagecraft"
 }
 
 variable "environment" {

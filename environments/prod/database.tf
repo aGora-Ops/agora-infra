@@ -1,4 +1,4 @@
-# ── Database (RDS PostgreSQL) ────────────────────────────────────────
+﻿# ── Database (RDS PostgreSQL) ────────────────────────────────────────
 # db.t3.micro (SCP guardrail). Prod keeps a final snapshot and 7-day backups.
 
 resource "random_password" "db_password" {
@@ -13,8 +13,8 @@ resource "aws_db_instance" "postgres" {
   engine_version = "15"
   instance_class = "db.t3.micro"
 
-  db_name  = "agora"
-  username = "agora"
+  db_name  = "stagecraft"
+  username = "stagecraft"
   password = random_password.db_password.result
 
   allocated_storage = 20

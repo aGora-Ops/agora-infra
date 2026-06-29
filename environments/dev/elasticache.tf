@@ -1,4 +1,4 @@
-#test2
+﻿#test2
 resource "aws_elasticache_subnet_group" "redis" {
   name       = "${local.name}-redis"
   subnet_ids = module.vpc.private_subnets
@@ -35,7 +35,7 @@ resource "aws_security_group" "redis" {
 
 resource "aws_elasticache_replication_group" "redis" {
   replication_group_id = "${local.name}-redis"
-  description          = "aGorA dev Redis - rate limiting, pub/sub, Celery broker"
+  description          = "Stagecraft dev Redis - rate limiting, pub/sub, Celery broker"
 
   node_type            = "cache.t3.micro"
   num_cache_clusters   = 1

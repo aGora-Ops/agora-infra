@@ -1,4 +1,4 @@
-resource "aws_s3_bucket" "kb_data" {
+﻿resource "aws_s3_bucket" "kb_data" {
   bucket        = "${local.name}-kb-data-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
 
@@ -223,8 +223,8 @@ resource "time_sleep" "kb_access_policy_propagation" {
 resource "aws_bedrock_guardrail" "main" {
   name                      = "${local.name}-guardrail"
   description               = "Blocks prompt injection and secret exfiltration attempts via CI log content"
-  blocked_input_messaging   = "This request was blocked by aGorA safety controls."
-  blocked_outputs_messaging = "This response was blocked by aGorA safety controls."
+  blocked_input_messaging   = "This request was blocked by Stagecraft safety controls."
+  blocked_outputs_messaging = "This response was blocked by Stagecraft safety controls."
 
   sensitive_information_policy_config {
     pii_entities_config {

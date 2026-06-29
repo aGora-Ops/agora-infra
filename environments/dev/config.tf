@@ -1,11 +1,11 @@
-resource "aws_s3_bucket" "config" {
+﻿resource "aws_s3_bucket" "config" {
   count = var.owns_account_security_baseline ? 1 : 0
 
   bucket        = "${local.name}-config-${data.aws_caller_identity.current.account_id}"
   force_destroy = true
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }

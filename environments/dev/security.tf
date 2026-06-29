@@ -1,4 +1,4 @@
-resource "aws_wafv2_web_acl" "main" {
+﻿resource "aws_wafv2_web_acl" "main" {
   name  = "${local.name}-waf"
   scope = "REGIONAL"
 
@@ -60,7 +60,7 @@ resource "aws_guardduty_detector" "main" {
   finding_publishing_frequency = "FIFTEEN_MINUTES"
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = "dev"
     ManagedBy   = "terraform"
   }

@@ -1,4 +1,4 @@
-variable "environment" {
+﻿variable "environment" {
   description = "Deployment environment (dev|prod)"
   type        = string
 }
@@ -9,7 +9,7 @@ variable "service_names" {
 }
 
 variable "secrets" {
-  description = "Map of service_key => map of secret key/value pairs to store at agora/{environment}/{service_key}"
+  description = "Map of service_key => map of secret key/value pairs to store at stagecraft/{environment}/{service_key}"
   type        = map(map(string))
   sensitive   = true
 }

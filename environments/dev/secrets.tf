@@ -1,4 +1,4 @@
-resource "random_password" "secret_key" {
+﻿resource "random_password" "secret_key" {
   length  = 64
   special = false
 }
@@ -15,7 +15,7 @@ module "secrets" {
 
   secrets = {
     api = {
-      DATABASE_URL                   = "postgresql+asyncpg://agora:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/agora"
+      DATABASE_URL                   = "postgresql+asyncpg://stagecraft:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/stagecraft"
       REDIS_URL                      = "rediss://:${random_password.redis_auth.result}@${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379/0"
       GITHUB_CLIENT_ID               = var.github_client_id
       GITHUB_CLIENT_SECRET           = var.github_client_secret
@@ -25,7 +25,7 @@ module "secrets" {
       SQS_QUEUE_URL                  = module.sqs.queue_url
       SECRET_KEY                     = random_password.secret_key.result
       INTERNAL_API_KEY               = random_password.internal_api_key.result
-      WORKER_INTERNAL_URL            = "http://agora-worker-agora-worker.agora.svc.cluster.local:8080"
+      WORKER_INTERNAL_URL            = "http://stagecraft-worker-stagecraft-worker.stagecraft.svc.cluster.local:8080"
       BEDROCK_CROSS_ACCOUNT_ROLE_ARN = ""
       BEDROCK_GUARDRAIL_ID           = aws_bedrock_guardrail.main.guardrail_id
       BEDROCK_GUARDRAIL_VERSION      = aws_bedrock_guardrail_version.main.version
@@ -36,7 +36,7 @@ module "secrets" {
       SQS_QUEUE_URL         = module.sqs.queue_url
     }
     worker = {
-      DATABASE_URL                             = "postgresql://agora:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/agora"
+      DATABASE_URL                             = "postgresql://stagecraft:${random_password.db_password.result}@${aws_db_instance.postgres.address}:${aws_db_instance.postgres.port}/stagecraft"
       REDIS_URL                                = "rediss://:${random_password.redis_auth.result}@${aws_elasticache_replication_group.redis.primary_endpoint_address}:6379/0"
       SQS_QUEUE_URL                            = module.sqs.queue_url
       SECRET_KEY                               = random_password.secret_key.result
@@ -68,7 +68,7 @@ module "secrets" {
     }
     "mcp-github" = {
       INTERNAL_API_KEY       = random_password.internal_api_key.result
-      AGORA_API_URL          = "http://agora-api-agora-api.agora.svc.cluster.local:8000"
+      STAGECRAFT_API_URL          = "http://stagecraft-api-stagecraft-api.stagecraft.svc.cluster.local:8000"
       GITHUB_APP_ID          = ""
       GITHUB_APP_PRIVATE_KEY = ""
       ALLOWED_ORG            = ""

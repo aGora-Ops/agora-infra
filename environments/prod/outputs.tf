@@ -1,4 +1,4 @@
-output "cluster_name" {
+﻿output "cluster_name" {
   description = "EKS cluster name"
   value       = module.eks.cluster_name
 }
@@ -14,7 +14,7 @@ output "vpc_id" {
 }
 
 output "app_secrets_arns" {
-  description = "ARNs of the per-service Secrets Manager entries (agora/dev/*)"
+  description = "ARNs of the per-service Secrets Manager entries (stagecraft/dev/*)"
   value       = module.secrets.secret_arns
 }
 
@@ -37,6 +37,6 @@ output "external_secrets_role_arn" {
 }
 
 output "waf_web_acl_arn" {
-  description = "WAFv2 Web ACL ARN — set as the alb.ingress.kubernetes.io/wafv2-acl-arn annotation on each public Ingress (agora-helm) to actually protect the ALBs"
+  description = "WAFv2 Web ACL ARN — set as the alb.ingress.kubernetes.io/wafv2-acl-arn annotation on each public Ingress (stagecraft-helm) to actually protect the ALBs"
   value       = aws_wafv2_web_acl.main.arn
 }

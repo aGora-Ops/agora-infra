@@ -1,4 +1,4 @@
-resource "aws_iam_role" "agent" {
+﻿resource "aws_iam_role" "agent" {
   for_each = var.agents
   name     = "${var.cluster_name}-bedrock-agent-${each.key}"
 
@@ -41,7 +41,7 @@ resource "aws_bedrockagent_agent" "this" {
   idle_session_ttl_in_seconds = 300
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = var.environment
     AgentRole   = each.key
   }

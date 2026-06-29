@@ -1,4 +1,4 @@
-terraform {
+﻿terraform {
   required_version = ">= 1.8.0"
 
   required_providers {
@@ -17,10 +17,10 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "agora-tfstate-personal-591316257673"
+    bucket         = "stagecraft-tfstate-personal-591316257673"
     key            = "dev/terraform.tfstate"
     region         = "us-east-1"
-    dynamodb_table = "agora-tf-locks"
+    dynamodb_table = "stagecraft-tf-locks"
     encrypt        = true
   }
 }
@@ -30,7 +30,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Project     = "agora"
+      Project     = "stagecraft"
       Environment = "dev"
       ManagedBy   = "terraform"
       Owner       = "chriss"

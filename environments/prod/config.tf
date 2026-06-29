@@ -1,4 +1,4 @@
-# ── AWS Config ────────────────────────────────────────────────────────
+﻿# ── AWS Config ────────────────────────────────────────────────────────
 # Compliance-as-code. See environments/dev/config.tf for the full design
 # rationale (own S3 bucket, 4 managed rules scoped to actual project gaps)
 # — identical here, just gated off by default.
@@ -13,7 +13,7 @@ resource "aws_s3_bucket" "config" {
   force_destroy = true
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = local.env
     ManagedBy   = "terraform"
   }

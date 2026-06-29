@@ -1,4 +1,4 @@
-# ── Monitoring (CloudWatch) ──────────────────────────────────────────
+﻿# ── Monitoring (CloudWatch) ──────────────────────────────────────────
 # RDS alarms (CPU, free storage) → SNS, plus a dashboard covering RDS, SQS
 # and EKS Container Insights.
 
@@ -63,8 +63,8 @@ resource "aws_cloudwatch_dashboard" "main" {
           title  = "SQS Queue Depth (main + DLQ)"
           region = var.aws_region
           metrics = [
-            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "agora-webhooks"],
-            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "agora-webhooks-dlq"],
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "stagecraft-webhooks"],
+            ["AWS/SQS", "ApproximateNumberOfMessagesVisible", "QueueName", "stagecraft-webhooks-dlq"],
           ]
         }
       },

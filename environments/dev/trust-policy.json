@@ -1,14 +1,14 @@
-{
+﻿{
   "Version": "2012-10-17",
   "Statement": [
     {
       "Effect": "Allow",
       "Principal": {
         "AWS": [
-          "arn:aws:iam::591316257673:role/agora-dev-agora-worker",
-          "arn:aws:iam::591316257673:role/agora-dev-agora-api",
-          "arn:aws:iam::591316257673:role/agora-prod-agora-worker",
-          "arn:aws:iam::591316257673:role/agora-prod-agora-api"
+          "arn:aws:iam::591316257673:role/stagecraft-dev-stagecraft-worker",
+          "arn:aws:iam::591316257673:role/stagecraft-dev-stagecraft-api",
+          "arn:aws:iam::591316257673:role/stagecraft-prod-stagecraft-worker",
+          "arn:aws:iam::591316257673:role/stagecraft-prod-stagecraft-api"
         ]
       },
       "Action": "sts:AssumeRole"

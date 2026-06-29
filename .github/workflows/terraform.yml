@@ -1,4 +1,4 @@
-name: Terraform
+﻿name: Terraform
 
 on:
   pull_request:
@@ -36,7 +36,7 @@ jobs:
   plan-dev:
     name: Plan Dev
     if: github.event_name != 'workflow_dispatch' || inputs.environment == 'dev'
-    uses: aGora-Ops/agora-workflows/.github/workflows/terraform-plan.yml@main
+    uses: Stagecraft-Ops/stagecraft-workflows/.github/workflows/terraform-plan.yml@main
     with:
       environment: dev
       working_directory: environments/dev
@@ -48,7 +48,7 @@ jobs:
   plan-prod:
     name: Plan Prod
     if: github.event_name == 'workflow_dispatch' && inputs.environment == 'prod'
-    uses: aGora-Ops/agora-workflows/.github/workflows/terraform-plan.yml@main
+    uses: Stagecraft-Ops/stagecraft-workflows/.github/workflows/terraform-plan.yml@main
     with:
       environment: prod
       working_directory: environments/prod
@@ -61,7 +61,7 @@ jobs:
     name: Apply Dev (manual)
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && inputs.environment == 'dev'
     needs: plan-dev
-    uses: aGora-Ops/agora-workflows/.github/workflows/terraform-apply.yml@main
+    uses: Stagecraft-Ops/stagecraft-workflows/.github/workflows/terraform-apply.yml@main
     with:
       environment: dev
       working_directory: environments/dev
@@ -73,7 +73,7 @@ jobs:
     name: Apply Prod (requires approval)
     if: github.event_name == 'workflow_dispatch' && inputs.action == 'apply' && inputs.environment == 'prod'
     needs: plan-prod
-    uses: aGora-Ops/agora-workflows/.github/workflows/terraform-apply.yml@main
+    uses: Stagecraft-Ops/stagecraft-workflows/.github/workflows/terraform-apply.yml@main
     with:
       environment: prod
       working_directory: environments/prod

@@ -1,14 +1,14 @@
-
+﻿
 resource "aws_secretsmanager_secret" "service" {
   for_each = toset(var.service_names)
 
-  name        = "agora/${var.environment}/${each.key}"
-  description = "aGorA ${var.environment} secrets for ${each.key}"
+  name        = "stagecraft/${var.environment}/${each.key}"
+  description = "Stagecraft ${var.environment} secrets for ${each.key}"
 
   recovery_window_in_days = var.environment == "prod" ? 30 : 0
 
   tags = {
-    Project     = "agora"
+    Project     = "stagecraft"
     Environment = var.environment
     Service     = each.key
   }

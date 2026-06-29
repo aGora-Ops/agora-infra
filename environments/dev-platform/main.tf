@@ -1,4 +1,4 @@
-data "aws_caller_identity" "current" {}
+﻿data "aws_caller_identity" "current" {}
 
 data "terraform_remote_state" "infra" {
   backend = "s3"
@@ -31,16 +31,16 @@ provider "helm" {
   }
 }
 
-resource "kubernetes_namespace" "agora" {
+resource "kubernetes_namespace" "stagecraft" {
   metadata {
-    name = "agora"
+    name = "stagecraft"
   }
 }
 
 resource "kubernetes_deployment" "redis" {
   metadata {
     name      = "redis"
-    namespace = kubernetes_namespace.agora.metadata[0].name
+    namespace = kubernetes_namespace.stagecraft.metadata[0].name
     labels    = { app = "redis" }
   }
 
@@ -69,7 +69,7 @@ resource "kubernetes_deployment" "redis" {
 resource "kubernetes_service" "redis" {
   metadata {
     name      = "redis"
-    namespace = kubernetes_namespace.agora.metadata[0].name
+    namespace = kubernetes_namespace.stagecraft.metadata[0].name
   }
   spec {
     selector = { app = "redis" }
@@ -123,7 +123,7 @@ resource "kubernetes_manifest" "gateway" {
     apiVersion = "gateway.networking.k8s.io/v1"
     kind       = "Gateway"
     metadata = {
-      name      = "agora-gateway"
+      name      = "stagecraft-gateway"
       namespace = "kgateway-system"
     }
     spec = {
@@ -147,7 +147,7 @@ resource "kubernetes_manifest" "reference_grant" {
     apiVersion = "gateway.networking.k8s.io/v1beta1"
     kind       = "ReferenceGrant"
     metadata = {
-      name      = "allow-agora-routes"
+      name      = "allow-stagecraft-routes"
       namespace = "kgateway-system"
     }
     spec = {
@@ -155,7 +155,7 @@ resource "kubernetes_manifest" "reference_grant" {
         {
           group     = "gateway.networking.k8s.io"
           kind      = "HTTPRoute"
-          namespace = "agora"
+          namespace = "stagecraft"
         },
         {
           group     = "gateway.networking.k8s.io"
@@ -251,7 +251,7 @@ resource "kubernetes_manifest" "argocd_httproute" {
       parentRefs = [{
         group     = "gateway.networking.k8s.io"
         kind      = "Gateway"
-        name      = "agora-gateway"
+        name      = "stagecraft-gateway"
         namespace = "kgateway-system"
       }]
       hostnames = ["argocd.${var.domain_name}"]
@@ -272,7 +272,7 @@ resource "kubernetes_manifest" "argocd_httproute" {
 
 resource "kubernetes_secret" "argocd_repo_helm" {
   metadata {
-    name      = "agora-helm-repo"
+    name      = "stagecraft-helm-repo"
     namespace = "argocd"
     labels = {
       "argocd.argoproj.io/secret-type" = "repository"
@@ -281,7 +281,7 @@ resource "kubernetes_secret" "argocd_repo_helm" {
 
   data = {
     type     = "git"
-    url      = "https://github.com/aGora-Ops/agora-helm.git"
+    url      = "https://github.com/Stagecraft-Ops/stagecraft-helm.git"
     username = "x-access-token"
     password = var.argocd_repo_pat
   }
@@ -290,7 +290,7 @@ resource "kubernetes_secret" "argocd_repo_helm" {
 }
 
 resource "kubernetes_manifest" "argocd_app" {
-  for_each = toset(["agora-api", "agora-webhook", "agora-worker", "agora-frontend", "agora-mcp-github"])
+  for_each = toset(["stagecraft-api", "stagecraft-webhook", "stagecraft-worker", "stagecraft-frontend", "stagecraft-mcp-github"])
 
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
@@ -302,7 +302,7 @@ resource "kubernetes_manifest" "argocd_app" {
     spec = {
       project = "default"
       source = {
-        repoURL        = "https://github.com/aGora-Ops/agora-helm.git"
+        repoURL        = "https://github.com/Stagecraft-Ops/stagecraft-helm.git"
         targetRevision = "main"
         path           = "charts/${each.key}"
         helm = {
@@ -315,7 +315,7 @@ resource "kubernetes_manifest" "argocd_app" {
       }
       destination = {
         server    = "https://kubernetes.default.svc"
-        namespace = "agora"
+        namespace = "stagecraft"
       }
       syncPolicy = {
         automated   = { prune = true, selfHeal = true }
@@ -475,7 +475,7 @@ resource "kubernetes_manifest" "grafana_httproute" {
       parentRefs = [{
         group     = "gateway.networking.k8s.io"
         kind      = "Gateway"
-        name      = "agora-gateway"
+        name      = "stagecraft-gateway"
         namespace = "kgateway-system"
       }]
       hostnames = ["grafana.${var.domain_name}"]

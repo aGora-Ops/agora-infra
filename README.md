@@ -1,18 +1,18 @@
-# agora-infra
+﻿# stagecraft-infra
 
-Terraform infrastructure for aGorA on AWS EKS. Uses
+Terraform infrastructure for Stagecraft on AWS EKS. Uses
 [terraform-aws-modules](https://github.com/terraform-aws-modules) from the public registry for
 VPC/EKS/ECR/ACM/IAM; custom modules (`modules/`) only for things specific to this project —
 IRSA role wiring, Secrets Manager entries, SQS + its DLQ/alarm, and Bedrock Agents.
 
-**Part of**: [aGora-Ops](https://github.com/aGora-Ops). For the full explanatory writeup (why
+**Part of**: [Stagecraft-Ops](https://github.com/Stagecraft-Ops). For the full explanatory writeup (why
 things are structured this way, what alternatives were considered, every incident found and
 fixed) see the `guide/` folder at the root of the umbrella project, not in this repo.
 
 ## Directory layout
 
 ```
-agora-infra/
+stagecraft-infra/
 ├── environments/
 │   ├── dev/              # main AWS account, dev — base infra: VPC, EKS, RDS, SQS, ECR,
 │   │   │                 # IAM/IRSA, Secrets Manager, CloudWatch, WAF, CloudFront, Karpenter IAM
@@ -62,7 +62,7 @@ infrastructure.
 | IAM / IRSA | `modules/iam/` (custom) + `iam-role-for-service-accounts-eks` | Per-service roles, scoped to exactly what each service needs |
 | Secrets Manager | `modules/secrets/` (custom) | One secret per service per environment — see below |
 | External Secrets Operator | `helm_release` (platform layer) | Syncs Secrets Manager → k8s Secrets |
-| ArgoCD | `helm_release` + `kubernetes_manifest` (platform layer) | Watches `agora-helm`, auto-deploys on every commit |
+| ArgoCD | `helm_release` + `kubernetes_manifest` (platform layer) | Watches `stagecraft-helm`, auto-deploys on every commit |
 | WAF | `aws_wafv2_web_acl` (two: REGIONAL + CLOUDFRONT scope) | CLOUDFRONT one is attached and live; REGIONAL one isn't attached to anything yet |
 | CloudFront + ACM + Route53 | `aws_cloudfront_distribution` + manual cert/zone | Dev only — the only way to attach WAF to an NLB |
 | Bedrock Agents | `modules/bedrock_agents/` (custom), separate AWS account | 5 agents: classifier, root_cause, yaml_fixer, security_reviewer, pr_writer |
@@ -73,12 +73,12 @@ infrastructure.
 
 ```
 terraform apply
-  → module.secrets creates agora/{env}/{service} in Secrets Manager
+  → module.secrets creates stagecraft/{env}/{service} in Secrets Manager
   → helm_release.external_secrets (platform layer) installs ESO with an IRSA role scoped to
-    secretsmanager:GetSecretValue on arn:...:secret:agora/*
+    secretsmanager:GetSecretValue on arn:...:secret:stagecraft/*
   → kubernetes_manifest.cluster_secret_store registers that role with ESO
-  → each Helm chart's templates/externalsecret.yaml (in agora-helm) creates
-    an ExternalSecret CR pointing at agora/{env}/{service}
+  → each Helm chart's templates/externalsecret.yaml (in stagecraft-helm) creates
+    an ExternalSecret CR pointing at stagecraft/{env}/{service}
   → ESO syncs it into a native k8s Secret (polls every 5 minutes)
   → the Deployment's envFrom: secretRef reads it — but only at container START.
     Updating the Secret does NOT update an already-running pod's environment;
@@ -99,17 +99,17 @@ secrets together or token decryption breaks.
 ```
 git push to a service repo (main branch)
   → ci.yml: build, scan (Trivy + SonarCloud), push to ECR,
-    helm-update commits new image.repository + image.tag to agora-helm
-  → ArgoCD (installed by dev-platform, watching agora-helm) detects the commit
-  → ArgoCD syncs the chart to the agora namespace automatically
+    helm-update commits new image.repository + image.tag to stagecraft-helm
+  → ArgoCD (installed by dev-platform, watching stagecraft-helm) detects the commit
+  → ArgoCD syncs the chart to the stagecraft namespace automatically
 ```
 
-ArgoCD needs read access to `agora-helm` (private repo) — `argocd_repo_pat`, a GitHub PAT with
+ArgoCD needs read access to `stagecraft-helm` (private repo) — `argocd_repo_pat`, a GitHub PAT with
 at least read access to that repo, passed as a Terraform variable (never committed).
 
 **What this does NOT automate**: the base layer (`dev`) has a CI workflow that plans on every
 push but only *applies* manually (`workflow_dispatch`). The platform layer (`dev-platform`) has
-**no CI workflow at all** — it's applied via `agora-workflows/scripts/bootstrap-new-account.sh`
+**no CI workflow at all** — it's applied via `stagecraft-workflows/scripts/bootstrap-new-account.sh`
 (branch `test`), run locally. See the umbrella project's `guide/02-infrastructure-architecture.md`
 ("What's NOT automated") for why.
 
