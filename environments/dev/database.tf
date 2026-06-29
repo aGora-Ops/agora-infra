@@ -20,8 +20,8 @@ resource "aws_db_instance" "postgres" {
   db_subnet_group_name   = module.vpc.database_subnet_group_name
   vpc_security_group_ids = [module.eks.node_security_group_id]
 
-  skip_final_snapshot        = false
-  backup_retention_period    = 7
+  skip_final_snapshot        = true
+  backup_retention_period    = 0
   auto_minor_version_upgrade = true
   publicly_accessible        = false
 }
