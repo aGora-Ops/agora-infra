@@ -8,5 +8,3 @@ output "worker_role_arn" { value = module.worker_role.iam_role_arn }
 output "worker_role_name" { value = module.worker_role.iam_role_name }
 
 output "external_secrets_role_arn" { value = module.external_secrets_role.iam_role_arn }
-
-output "cloudwatch_observability_role_arn" { value = module.cloudwatch_observability_role.iam_role_arn }

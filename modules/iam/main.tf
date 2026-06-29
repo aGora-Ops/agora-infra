@@ -82,24 +82,6 @@ module "external_secrets_role" {
   }
 }
 
-module "cloudwatch_observability_role" {
-  source  = "terraform-aws-modules/iam/aws//modules/iam-role-for-service-accounts-eks"
-  version = "~> 5.39"
-
-  role_name = "${var.cluster_name}-cloudwatch-observability"
-
-  oidc_providers = {
-    main = {
-      provider_arn               = var.oidc_provider_arn
-      namespace_service_accounts = ["amazon-cloudwatch:cloudwatch-agent"]
-    }
-  }
-
-  role_policy_arns = {
-    cloudwatch_agent = "arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy"
-  }
-}
-
 resource "aws_iam_policy" "bedrock" {
   name = "${var.cluster_name}-bedrock-invoke"
   policy = jsonencode({
@@ -109,25 +91,6 @@ resource "aws_iam_policy" "bedrock" {
         Effect   = "Allow"
         Action   = ["bedrock:InvokeModel"]
         Resource = var.bedrock_model_arn
-      },
-      {
-        # Knowledge Base retrieve + sync (worker ingests docs, API retrieves).
-        Effect   = "Allow"
-        Action   = ["bedrock:Retrieve", "bedrock:RetrieveAndGenerate"]
-        Resource = "arn:aws:bedrock:${var.aws_region}:${var.account_id}:knowledge-base/*"
-      },
-      {
-        # Worker syncs remediation docs to the KB S3 data source.
-        Effect   = "Allow"
-        Action   = ["s3:PutObject", "s3:DeleteObject", "s3:GetObject"]
-        Resource = "arn:aws:s3:::*-kb-data-${var.account_id}/*"
-      },
-      {
-        # Allows assuming the cross-account Bedrock role in the Bedrock account.
-        # The role ARN is supplied at runtime via BEDROCK_CROSS_ACCOUNT_ROLE_ARN.
-        Effect   = "Allow"
-        Action   = ["sts:AssumeRole"]
-        Resource = "arn:aws:iam::*:role/*bedrock*"
       }
     ]
   })

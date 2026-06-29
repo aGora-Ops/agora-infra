@@ -1,6 +1,5 @@
-﻿aws_region         = "us-east-1"
+aws_region         = "us-east-1"
 cluster_name       = "stagecraft-prod"
 vpc_cidr           = "10.1.0.0/16"
 kubernetes_version = "1.30"
-domain_name        = "stagecraft.example.com" # set your real domain
-log_retention_days = 30
+domain_name        = "stagecraft.example.com"

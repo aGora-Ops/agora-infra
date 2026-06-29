@@ -1,22 +1,11 @@
-﻿resource "aws_sns_topic" "alerts" {
-  name = "${local.name}-alerts"
-}
-
-resource "aws_sns_topic_subscription" "alerts_email" {
-  topic_arn = aws_sns_topic.alerts.arn
-  protocol  = "email"
-  endpoint  = var.alert_email
-}
-
 module "sqs" {
   source = "../../modules/sqs"
 
-  name                = "stagecraft-webhooks"
-  environment         = local.env
-  max_receive_count   = 3
-  sender_role_arn     = module.iam.webhook_role_arn
-  consumer_role_arn   = module.iam.worker_role_arn
-  alarm_sns_topic_arn = aws_sns_topic.alerts.arn
+  name              = "stagecraft-webhooks"
+  environment       = local.env
+  max_receive_count = 3
+  sender_role_arn   = module.iam.webhook_role_arn
+  consumer_role_arn = module.iam.worker_role_arn
 }
 
 resource "aws_iam_policy" "sqs_send" {

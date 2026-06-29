@@ -24,7 +24,3 @@ variable "consumer_role_arn" {
   type        = string
 }
 
-variable "alarm_sns_topic_arn" {
-  description = "SNS topic ARN to notify when the DLQ receives messages"
-  type        = string
-}

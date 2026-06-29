@@ -39,9 +39,6 @@ module "eks" {
     }
   }
 
-  cluster_enabled_log_types              = ["api", "audit", "authenticator", "controllerManager", "scheduler"]
-  cloudwatch_log_group_retention_in_days = var.log_retention_days
-
   enable_irsa = true
 
   node_security_group_additional_rules = {
@@ -77,21 +74,6 @@ resource "aws_eks_addon" "ebs_csi" {
   service_account_role_arn = module.ebs_csi_irsa.iam_role_arn
 
   depends_on = [module.eks, module.ebs_csi_irsa]
-}
-
-resource "aws_eks_addon" "cloudwatch_observability" {
-  cluster_name             = module.eks.cluster_name
-  addon_name               = "amazon-cloudwatch-observability"
-  service_account_role_arn = module.iam.cloudwatch_observability_role_arn
-
-  depends_on = [module.eks, module.iam]
-}
-
-resource "aws_cloudwatch_log_group" "container_insights" {
-  for_each = toset(["application", "dataplane", "host", "performance"])
-
-  name              = "/aws/containerinsights/${local.name}/${each.key}"
-  retention_in_days = var.log_retention_days
 }
 
 module "karpenter" {
